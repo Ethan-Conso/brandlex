@@ -47,7 +47,7 @@ npx @playwright/cli -s=brandlex-v32-capture close
 From the application directory, build the site and serve it under a project subpath with a disposable HTTP server.
 
 ```sh
-python3 scripts/build_github_pages.py
+BRANDLEX_PUBLIC_REWRITE_URL=https://relay.brandlex.test/api/pages/rewrite python3 scripts/build_github_pages.py
 preview_dir=$(mktemp -d "${TMPDIR:-/tmp}/brandlex-pages.XXXXXX")
 ln -s "$PWD/docs" "$preview_dir/brandlex"
 python3 -m http.server 5067 --bind 127.0.0.1 --directory "$preview_dir"
@@ -62,4 +62,4 @@ npx @playwright/cli -s=brandlex-pages run-code --filename=tests/browser/github_p
 npx @playwright/cli -s=brandlex-pages close
 ```
 
-This suite clears browser storage on the disposable origin. It checks the homepage, all 45 cached DeepSeek outputs, a mocked optional-key request and fallback, case browsing, local term edits across reloads, and three browser-generated exports. It also reports warm browser timings for search, feed, and term detail.
+This suite clears browser storage on the disposable origin. It checks all 45 cached DeepSeek outputs, the mocked public relay for custom drafts and `试改`, a direct personal-key request and fallback while maintenance is locked, case browsing, local term edits across reloads, and three browser-generated exports. It reports warm browser timings for search, feed, and term detail. Build without `BRANDLEX_PUBLIC_REWRITE_URL` to exercise the same workflow with local preview instead of the relay. Rebuild with production settings after testing.

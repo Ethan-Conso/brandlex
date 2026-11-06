@@ -26,7 +26,6 @@ Startup reads the application directory's existing `.env` without modifying it. 
 | --- | --- |
 | `DEEPSEEK_API_KEY` | Enables DeepSeek rewriting; an absent key or the documented placeholder selects a local preview. |
 | `DEEPSEEK_BASE_URL` | Chat Completions service base URL; normally `https://api.deepseek.com`. |
-| `DEEPSEEK_MODEL` | An available model name from the provider; the current workspace uses `deepseek-flash`. |
 | `BRANDLEX_ADMIN_PASSWORD` | Maintenance password; never returned to the browser. |
 | `BRANDLEX_SECRET_KEY` | Persistent, unpredictable session-signing secret. Use the same secret across workers. |
 | `BRANDLEX_HTTPS` | Set to `1` when serving over HTTPS to require secure cookies. |
@@ -74,16 +73,16 @@ result = rewrite_copy(
 print(result["primary_copy"])
 ```
 
-Targets are `hk`, `cn`, and `en`; tones are `standard`, `social`, and `concise`. Input is limited to 20,000 characters. Retrieval matches glossary expressions, aliases, and relevant regional rules before composing the rewriting instruction. The instruction requires faithful facts, prices, dates, offers, and brand terminology rather than invented promotional claims.
+Targets are `hk`, `cn`, and `en`; tones are `standard`, `social`, and `concise`. Input is limited to 20,000 characters. Retrieval matches glossary expressions, aliases, and relevant regional rules before composing the rewriting instruction. Each of the nine market and tone combinations has its own editorial guidance for voice, structure, and regional phrasing. Both versions preserve the facts, prices, dates, offers, and applicable brand terminology.
 
 Retrieval ranks glossary hits by the longest matched expression, then occurrence count, then term ID. It retains up to 18 terms and 24 phrase rules. The model prompt further packs those results into a 690-byte UTF-8 JSON budget, a conservative token bound for byte-level tokenizers. It sends usage tips of at most 80 characters and omits examples and other metadata. This budget covers the grounding block. Draft length and model output have separate limits.
 
-With a configured key, the service posts to `{DEEPSEEK_BASE_URL}/chat/completions` using `urllib.request`, a 25-second timeout, and JSON object output. Thinking is explicitly disabled for this interactive rewriting task, rather than relying on the provider's default. The submitted draft and relevant library constraints are sent to DeepSeek. Drafts are not added to the library or persisted by BrandLex.
+With a configured key, the service posts to `{DEEPSEEK_BASE_URL}/chat/completions` using `deepseek-flash`, `urllib.request`, a 25-second timeout, and JSON object output. Requests disable thinking and use temperatures 0.5 for `standard`, 0.75 for `social`, and 0.35 for `concise`. The submitted draft and relevant library constraints are sent to DeepSeek. Drafts are not added to the library or persisted by BrandLex.
 
 The result contains:
 
 - `primary_copy` and `alt_copy`: recommended and shorter versions.
-- `adaptations`: `original`, `adapted`, `reason`, and validated `term_id` references.
+- `adaptations`: exact source and output quotes for glossary, style, and translation edits, with a short Chinese reason and a verified `term_id` when applicable.
 - `cta_options`: two optional ending suggestions.
 - `matched_glossary_terms`: complete reference records for the shared detail drawer.
 - `counts` and `source_counts`: output and input length/read-time estimates.
@@ -140,7 +139,7 @@ Replacement positions use Python Unicode code points in the exact submitted draf
 
 ```sh
 .venv/bin/python -m unittest discover -v
-node --test tests/test_frontend_helpers.cjs tests/test_home_motion.cjs
+BRANDLEX_TEST_PYTHON=.venv/bin/python node --test tests/test_*.cjs
 ```
 
 Tests exercise dataset quality, multilingual search, persistence and migrations, concurrent writers, snapshot recovery, malformed inputs, exports, local checking, rewrite service responses, maintenance isolation, same-origin protection, request limits, and complete backend workflows. Browser verification instructions live in `tests/browser/README.md`.

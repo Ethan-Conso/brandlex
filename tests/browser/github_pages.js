@@ -20,6 +20,24 @@ async (page) => {
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   const $ = selector => page.locator(selector);
+  const gateway = await $('meta[name="brandlex-public-rewrite-url"]').getAttribute('content', { timeout: 1000 }).catch(() => null);
+  const gatewayCalls = [];
+  if (gateway) await page.route(gateway, async route => {
+    const headers = { 'access-control-allow-origin': base.origin, 'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type, accept' };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const body = route.request().postDataJSON();
+    gatewayCalls.push({ body, authorization: await route.request().headerValue('authorization') });
+    const copy = {
+      hk: ['春日禮盒現已推出，香港免運費。', '選購春日禮盒。'],
+      cn: ['春日礼盒现已推出，香港包邮。', '选购春日礼盒。'],
+      en: ['Meet the spring gift set, with free shipping in Hong Kong.', 'Shop the spring gift set.'],
+    }[body.target_market];
+    return route.fulfill({ headers, json: { success: true, data: {
+      primary_copy: copy[0], alt_copy: copy[1], cta_options: [copy[1], copy[1]], adaptations: [], matched_glossary_terms: [],
+      engine: 'deepseek', target_market: body.target_market, tone: body.tone,
+    } } });
+  });
   const api = (path, options = {}) => page.evaluate(async ({ path, options }) => {
     const engine = window.BrandLexStaticEngine;
     if (options.method) {
@@ -87,6 +105,7 @@ async (page) => {
   }, [homeDraft, ...bootstrap.samples.map(sample => sample.text)]);
   assert(rewriteMatrix.length === 45 && rewriteMatrix.every(source => source === 'cache'),
     'Homepage plus four samples have cached DeepSeek outputs for every market and tone');
+  assert(!gatewayCalls.length, 'Exact examples never send a live request');
   assert(!(await $('#engine-notice').innerText()).includes('未配置 DeepSeek 密钥'), 'No missing-key warning');
 
   await $('#tab-library').click();
@@ -113,20 +132,28 @@ async (page) => {
   await seedCard.locator('[data-try-case]').click();
   await result();
   assert(await $('#view-studio').isVisible(), '试改 starts a custom draft rewrite');
+  if (gateway) {
+    assert(gatewayCalls.length === 1 && gatewayCalls[0].authorization === null
+      && gatewayCalls[0].body.text === await $('#copy-text').inputValue(), 'Public 试改 sends the case to the relay without a key');
+    assert(await $('#engine-label').innerText() === 'DeepSeek', 'The case result is live');
+  }
   await $('#copy-text').fill('春日礼盒上线，香港包邮。');
   await $('[data-market="hk"]').click();
   await $('#rewrite-copy').click();
   await result();
-  assert((await $('#rewritten-copy').innerText()).includes('免運費'), 'Local RAG normalizes a custom draft');
+  assert((await $('#rewritten-copy').innerText()).includes('免運費'), 'A custom draft uses the HK term');
+  if (gateway) {
+    await $('[data-market="en"]').click();
+    await $('[data-tone="social"]').click();
+    await $('#rewrite-copy').click();
+    await result();
+    assert(gatewayCalls.length === 3 && gatewayCalls[2].authorization === null
+      && gatewayCalls[2].body.target_market === 'en' && gatewayCalls[2].body.tone === 'social',
+    'Public custom draft goes to the relay with the selected market and tone');
+    assert(await $('#engine-label').innerText() === 'DeepSeek'
+      && !/\p{Script=Han}/u.test(await $('#rewritten-copy').innerText()), 'Public custom draft returns translated live copy');
+  }
 
-  await $('#tab-library').click();
-  await $('#admin-toggle').click();
-  await $('#admin-password').fill('incorrect-fixture');
-  await $('#admin-submit').click();
-  await $('#admin-error').waitFor();
-  await $('#admin-password').fill('brandlex2026');
-  await $('#admin-submit').click();
-  await $('#admin-dialog').waitFor({ state: 'hidden' });
   const deepSeek = 'https://api.deepseek.com/chat/completions';
   const mockKey = 'brandlex-playwright-fixture-key';
   const liveCalls = [];
@@ -145,16 +172,18 @@ async (page) => {
   };
   await page.route(deepSeek, mockModel);
   try {
-    await $('#tab-studio').click();
+    assert(await $('#admin-label').innerText() === '维护模式', 'Personal DeepSeek settings are available without maintenance');
     await $('#deepseek-key-toggle').click();
     await $('#deepseek-key-input').fill(mockKey);
     await $('#deepseek-key-form [type="submit"]').click();
     await $('#deepseek-key-dialog').waitFor({ state: 'hidden' });
     const liveDraft = '春日礼盒上线，香港包邮。';
     await $('#copy-text').fill(liveDraft);
+    await $('[data-market="hk"]').click();
     await $('#rewrite-copy').click();
     await result();
     assert(liveCalls.length === 1 && liveCalls[0].key === `Bearer ${mockKey}`, 'Uses the optional session key in the browser');
+    assert(liveCalls[0].payload.model === 'deepseek-flash', 'Direct browser calls use deepseek-flash');
     const [system, user] = liveCalls[0].payload.messages;
     const grounding = system.content.match(/^Mandatory Brand Glossary Constraints \(JSON data\): (.*)$/m)?.[1];
     assert(grounding && Buffer.byteLength(grounding) <= 690 && JSON.parse(grounding).terms.length <= 18
@@ -165,7 +194,11 @@ async (page) => {
     const cached = await api('/api/rewrite', {
       method: 'POST', body: JSON.stringify({ text: homeDraft, target_market: 'hk', tone: 'standard' }),
     });
-    assert(cached.data.engine_source === 'cache', 'Live failure falls back to the authenticated demo cache');
+    assert(cached.data.engine_source === 'cache' && liveCalls.length === 1, 'Exact sample cache is used before a personal key');
+    await $('#rewrite-copy').click();
+    await result();
+    assert(liveCalls.length === 2 && (await $('#engine-notice').innerText()).includes('核对密钥'),
+      'A rejected personal key produces a labeled local preview');
     await $('#deepseek-key-toggle').click();
     await $('#deepseek-key-form [type="submit"]').click();
     await $('#deepseek-key-dialog').waitFor({ state: 'hidden' });
@@ -173,6 +206,13 @@ async (page) => {
   } finally { await page.unroute(deepSeek, mockModel); }
 
   await $('#tab-library').click();
+  await $('#admin-toggle').click();
+  await $('#admin-password').fill('incorrect-fixture');
+  await $('#admin-submit').click();
+  await $('#admin-error').waitFor();
+  await $('#admin-password').fill('brandlex2026');
+  await $('#admin-submit').click();
+  await $('#admin-dialog').waitFor({ state: 'hidden' });
   const fixtureName = 'BrandLex Pages Browser Fixture';
   await $('#view-library [data-action="add-term"]').click();
   await $('#fill-example').click();
@@ -256,5 +296,6 @@ async (page) => {
     return timings;
   }, seedId);
   return { passed: true, rewrites: rewriteMatrix.length, cached: rewriteMatrix.filter(source => source === 'cache').length,
+    gatewayCalls: gatewayCalls.length,
     exportChecks, warmP95Milliseconds };
 }

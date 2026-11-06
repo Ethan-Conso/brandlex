@@ -8,6 +8,7 @@ from pathlib import Path
 ENV_KEYS = frozenset({
     "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DEEPSEEK_MODEL",
     "BRANDLEX_ADMIN_PASSWORD", "BRANDLEX_SECRET_KEY", "BRANDLEX_DATA_DIR", "BRANDLEX_HTTPS", "PORT",
+    "BRANDLEX_PAGES_ORIGIN", "BRANDLEX_PAGES_TRUST_CLOUDFLARE",
 })
 UNSAFE_SESSION_KEYS = frozenset({"brandlex-production-secret-key-2026", "your_secret_key_here"})
 

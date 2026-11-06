@@ -24,6 +24,8 @@ jobs:
           persist-credentials: false
       - uses: actions/configure-pages@v5
       - name: Build browser-only site
+        env:
+          BRANDLEX_PUBLIC_REWRITE_URL: ${{ vars.BRANDLEX_PUBLIC_REWRITE_URL }}
         run: python3 scripts/build_github_pages.py
       - uses: actions/upload-pages-artifact@v4
         with:

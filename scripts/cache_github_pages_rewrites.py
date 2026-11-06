@@ -17,12 +17,11 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from core.ai_rewriter import rewrite_copy
+from core.ai_rewriter import MODEL, rewrite_copy
 from core.configuration import load_environment
 from core.search_engine import SearchEngine
 
 
-MODEL = "deepseek-flash"
 DATA = ROOT / "data"
 MARKETS = ("hk", "cn", "en")
 TONES = ("standard", "social", "concise")
@@ -49,13 +48,15 @@ def cache_case(case, glossary):
     draft, market, tone = case
     for attempt in range(3):
         report = rewrite_copy(draft["text"], market, tone, glossary)
-        if report["engine"] == "deepseek":
+        live = report["engine"] == "deepseek"
+        if live and 3 <= len(report["adaptations"]) <= 6 and len(set(report["cta_options"])) == 2:
             return {**{field: report[field] for field in REPORT_FIELDS},
                     "matched_term_ids": [term["id"] for term in report["matched_glossary_terms"]]}
-        if report["error_code"] not in RETRYABLE or attempt == 2:
+        error = "incomplete_sample" if live else report["error_code"]
+        if (not live and error not in RETRYABLE) or attempt == 2:
             break
         time.sleep(2 ** attempt)
-    raise RuntimeError(f"{draft['id']} {market}:{tone} failed ({report['error_code']}).")
+    raise RuntimeError(f"{draft['id']} {market}:{tone} failed ({error}).")
 
 
 def generate(drafts, glossary):
@@ -98,7 +99,6 @@ def main():
     # The public demo cache must have first-party provenance. Keep the normal
     # Flask configuration independent of this one-off generator.
     os.environ["DEEPSEEK_BASE_URL"] = "https://api.deepseek.com"
-    os.environ["DEEPSEEK_MODEL"] = MODEL
     try:
         cache = generate(load_drafts(), SearchEngine(read_data("glossary_seed.json")))
         write_cache(cache, key)

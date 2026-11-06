@@ -80,5 +80,8 @@
     return report.engine === 'local' ? '本地词库改写' : '本地预览';
   }
 
-  window.BrandLexAPI = Object.freeze({ request, isStatic: () => mode === 'static', getDeepSeekKey, setDeepSeekKey, downloadExport, engineLabel });
+  window.BrandLexAPI = Object.freeze({
+    request, isStatic: () => mode === 'static', hasPublicRewrite: () => window.BrandLexStaticEngine.hasPublicRewrite,
+    getDeepSeekKey, setDeepSeekKey, downloadExport, engineLabel,
+  });
 })();

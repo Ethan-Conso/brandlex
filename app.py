@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import Flask, abort, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -16,14 +17,15 @@ from core.copy_checker import MAX_COPY_LENGTH, analyze_copy
 from core.db_manager import DBManager, SnapshotSyncError
 from core.pages_assets import GENERATED_ASSETS, PUBLIC_SNAPSHOTS
 from core.schema import CATEGORIES, TERM_FIELDS
-from core.search_engine import FEED_BATCH_SIZE
+from core.search_engine import FEED_BATCH_SIZE, SearchEngine
 from data.lexicon_domains import learning_tip
-from web_security import csrf_token, install_safeguards
+from web_security import csrf_token, install_pages_safeguards, install_safeguards
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_PAGE_SIZE = 60
 SEARCH_PAGE_SIZE = 12
 MAX_PAGE_SIZE = 200
+PAGES_MAX_COPY_LENGTH = 4000
 MESSAGES = {
     400: "请检查填写的内容后重试。",
     403: "页面连接已更新，请刷新页面后重试。",
@@ -278,25 +280,84 @@ def _register_routes(app, library, samples):
 
     @app.post("/api/rewrite")
     def rewrite_draft():
-        payload = _payload()
-        text, market, tone = payload.get("text"), payload.get("target_market"), payload.get("tone")
-        if set(payload) != {"text", "target_market", "tone"} or not isinstance(text, str) or not text.strip():
-            abort(400, description="请输入原稿并选择市场和风格。")
-        if not isinstance(market, str) or market not in {"hk", "cn", "en"}:
-            abort(400, description="请选择香港、内地或英语市场。")
-        if not isinstance(tone, str) or tone not in {"standard", "social", "concise"}:
-            abort(400, description="请选择品牌标准、社媒种草或精炼转化。")
-        if len(text) > MAX_COPY_LENGTH:
-            abort(400, description="文案太长，请缩短至 20,000 字以内后重试。")
-        try:
-            text.encode("utf-8")
-        except UnicodeError:
-            abort(400, description="文案含有无法识别的字符，请重新粘贴后重试。")
-        try:
-            report = rewrite_copy(text, market, tone, library.get_search_engine())
-        except (ValueError, TypeError):
-            abort(400, description="请检查原稿中的字符，并重新选择市场和风格。")
-        return jsonify(success=True, data=report)
+        draft = _rewrite_fields(MAX_COPY_LENGTH)
+        return _rewrite_response(draft, library.get_search_engine())
+
+
+def _rewrite_fields(max_length):
+    payload = _payload()
+    text, market, tone = payload.get("text"), payload.get("target_market"), payload.get("tone")
+    if set(payload) != {"text", "target_market", "tone"} or not isinstance(text, str) or not text.strip():
+        abort(400, description="请输入原稿并选择市场和风格。")
+    if not isinstance(market, str) or market not in {"hk", "cn", "en"}:
+        abort(400, description="请选择香港、内地或英语市场。")
+    if not isinstance(tone, str) or tone not in {"standard", "social", "concise"}:
+        abort(400, description="请选择品牌标准、社媒种草或精炼转化。")
+    if len(text) > max_length:
+        abort(400, description=f"文案太长，请缩短至 {max_length:,} 字以内后重试。")
+    try:
+        text.encode("utf-8")
+    except UnicodeError:
+        abort(400, description="文案含有无法识别的字符，请重新粘贴后重试。")
+    return text, market, tone
+
+
+def _rewrite_response(draft, glossary):
+    try:
+        report = rewrite_copy(*draft, glossary)
+    except (ValueError, TypeError):
+        abort(400, description="请检查原稿中的字符，并重新选择市场和风格。")
+    return jsonify(success=True, data=report)
+
+
+def _validate_pages_origin(origin):
+    if not origin:
+        return
+    try:
+        parsed = urlsplit(origin)
+        port = parsed.port
+    except ValueError:
+        raise ValueError("BRANDLEX_PAGES_ORIGIN must be one HTTPS origin") from None
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+            or origin != f"https://{parsed.netloc}" or port == 0
+            or any(char.isspace() for char in origin)):
+        raise ValueError("BRANDLEX_PAGES_ORIGIN must be one HTTPS origin")
+
+
+def create_pages_app(config=None):
+    """Read-only, cookie-free rewrite service for a configured Pages origin."""
+    load_environment(ROOT / ".env")
+    app = Flask(__name__, static_folder=None)
+    app.config.from_mapping(
+        LIBRARY_DIR=ROOT / "data", MAX_CONTENT_LENGTH=64 * 1024,
+        PAGES_ORIGIN=os.environ.get("BRANDLEX_PAGES_ORIGIN", ""),
+        PAGES_TRUST_CLOUDFLARE=os.environ.get("BRANDLEX_PAGES_TRUST_CLOUDFLARE") == "1",
+        PAGES_IP_RATE_LIMIT=6, PAGES_DAILY_LIMIT=120,
+    )
+    if config:
+        app.config.update(config)
+    _validate_pages_origin(app.config["PAGES_ORIGIN"])
+    app.json.ensure_ascii = False
+    seed_path = Path(app.config["LIBRARY_DIR"]) / "glossary_seed.json"
+    glossary = SearchEngine(json.loads(seed_path.read_text(encoding="utf-8")))
+    _register_errors(app)
+    reserve_call = install_pages_safeguards(app)
+
+    @app.get("/healthz")
+    def health():
+        return "", 200, {"Cache-Control": "no-store"}
+
+    @app.route("/api/pages/rewrite", methods=["OPTIONS", "POST"])
+    def pages_rewrite():
+        if request.method == "OPTIONS":
+            return "", 204
+        draft = _rewrite_fields(PAGES_MAX_COPY_LENGTH)
+        limited = reserve_call()
+        if limited is not None:
+            return limited
+        return _rewrite_response(draft, glossary)
+
+    return app
 
 
 if __name__ == "__main__":

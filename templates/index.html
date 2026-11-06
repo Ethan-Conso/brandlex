@@ -208,7 +208,7 @@ LUMA 跨界聯乘禮盒，現已登場。</p>
   <dialog class="modal password-modal" id="admin-dialog" aria-labelledby="admin-dialog-title"><div class="modal-head"><h2 id="admin-dialog-title">维护模式</h2><button class="icon-button" type="button" data-close="admin-dialog" aria-label="关闭维护模式">×</button></div><p class="modal-description">输入管理口令，维护品牌词库。</p><form id="admin-form"><label for="admin-password">管理口令</label><input type="password" id="admin-password" name="password" required maxlength="300" autocomplete="current-password" placeholder="输入口令"><p id="admin-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" type="button" data-close="admin-dialog">取消</button><button class="button button-primary" id="admin-submit" type="submit">解锁</button></div></form></dialog>
   <dialog class="modal password-modal" id="deepseek-key-dialog" aria-labelledby="deepseek-key-title">
     <div class="modal-head"><h2 id="deepseek-key-title">DeepSeek API Key</h2><button class="icon-button" type="button" data-close="deepseek-key-dialog" aria-label="关闭 DeepSeek 设置">×</button></div>
-    <p class="modal-description">密钥仅保存在当前浏览器会话。启用后，原稿与命中词条会直接发送至 DeepSeek。留空保存可清除密钥。</p>
+    <p class="modal-description">可选填个人密钥。密钥仅保存在当前浏览器会话，并直接发送至 DeepSeek。留空保存可清除密钥。</p>
     <form id="deepseek-key-form" autocomplete="off">
       <label for="deepseek-key-input">API Key（选填）</label><input type="password" id="deepseek-key-input" maxlength="300" autocomplete="off" spellcheck="false" placeholder="输入 DeepSeek API Key">
       <p id="deepseek-key-error" class="error-message" role="alert" hidden></p>

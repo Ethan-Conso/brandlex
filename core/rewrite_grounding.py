@@ -13,6 +13,13 @@ MAX_RAG_TERMS = 18
 MAX_RAG_CONSTRAINTS = 24
 
 _FIELDS = {"hk": "term_hk", "cn": "term_cn", "en": "term_en"}
+# Preserve grammatical in-market forms when the canonical label is a noun phrase.
+_OUTPUT_VARIANTS = {
+    "hk": {"抵買": ("性價比幾高", "性價比挺高", "性價比很高")},
+    "cn": {"高性价比": ("性价比高", "性价比挺高", "性价比很高"),
+           "满赠礼遇": ("买满即送", "买满即赠", "满额即送", "满额即赠")},
+    "en": {"Value for Money": ("good value for money",)},
+}
 _URL = r"https?://[^\s<>\"，。！？；]+"
 _SCAN_URL = re.compile(_URL, re.IGNORECASE)
 _SPLIT_URL = re.compile(f"({_URL})", re.IGNORECASE)
@@ -140,12 +147,14 @@ def retrieve_constraints(text, market, glossary):
 
 
 def output_constraints(matched, market):
-    """Canonicalize every known alias in generated prose, including unseen aliases."""
+    """Canonicalize known aliases without rewriting grammatical in-market forms."""
     rows = []
+    protected = _OUTPUT_VARIANTS.get(market, {})
     for term in matched:
         target = convert_script(canonical_expression(term, market), market)
         rows.extend({"original": value, "adapted": target}
                     for value in expressions(term) if value != target)
+        rows.extend({"original": phrase, "adapted": phrase} for phrase in protected.get(target, ()))
     return tuple(sorted(rows, key=lambda item: -len(item["original"])))
 
 

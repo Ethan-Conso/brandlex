@@ -6,6 +6,7 @@
   const DEEPSEEK_KEY = 'brandlex_deepseek_key';
   const ADMIN_DIGEST = '27f9a8244ebd8b37a73ab917581ff97435e4bd623e2489125bba781bed8fc49c';
   const ADMIN_DURATION = 8 * 60 * 60 * 1000;
+  const rewriteGateway = document.querySelector('meta[name="brandlex-public-rewrite-url"]')?.content || '';
   const TERM_FIELDS = ['id', 'term_en', 'term_hk', 'term_cn', 'aliases', 'category', 'platforms', 'meaning', 'bad_example', 'good_example_en', 'good_example_hk', 'good_example_cn', 'usage_tip'];
   const EXPRESSIONS = ['term_en', 'term_hk', 'term_cn'];
   const CONTEXT_FIELDS = ['category', 'bad_example', 'good_example_en', 'good_example_hk', 'good_example_cn'];
@@ -19,6 +20,7 @@
   const FEED_BATCH = 6;
   const MAX_PAGE = 200;
   const MAX_DRAFT = 20000;
+  const MAX_RELAY_DRAFT = 4000;
   const MAX_REQUEST = 192 * 1024;
   const MARKETS = ['hk', 'cn', 'en'];
   const TONES = ['standard', 'social', 'concise'];
@@ -550,6 +552,59 @@
     };
   }
 
+  function validGatewayReport(data, body) {
+    const nonempty = value => typeof value === 'string' && value.trim().length > 0;
+    return data?.engine === 'deepseek' && data.target_market === body.target_market && data.tone === body.tone
+      && [data.primary_copy, data.alt_copy].every(nonempty)
+      && Array.isArray(data.cta_options) && data.cta_options.length === 2 && data.cta_options.every(nonempty)
+      && Array.isArray(data.adaptations) && data.adaptations.every(item => item
+        && [item.original, item.adapted, item.reason].every(nonempty) && (item.term_id === null || validId(item.term_id)))
+      && Array.isArray(data.matched_glossary_terms) && data.matched_glossary_terms.every(term => term && validId(term.id)
+        && EDITABLE_FIELDS.every(field => LIST_FIELDS.includes(field)
+          ? Array.isArray(term[field]) && term[field].every(nonempty) : nonempty(term[field])));
+  }
+
+  async function requestPublicRewrite(body, signal) {
+    if (Array.from(body.text).length > MAX_RELAY_DRAFT) fail(413, '在线改写支持 4,000 字以内的原稿。');
+    const timeout = AbortSignal.timeout(90_000);
+    const response = await fetch(rewriteGateway, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body), signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer', cache: 'no-store',
+    });
+    if (!response.ok) fail(response.status, '在线改写未完成。');
+    const { success, data } = await response.json();
+    if (!success || !validGatewayReport(data, body)) {
+      fail(502, '在线改写未返回完整结果。');
+    }
+    return { ...data, engine_source: 'live' };
+  }
+
+  async function rewriteCopy(body, terms, resources, cache, signal) {
+    const { text: draft, target_market: region, tone } = body;
+    const rewriter = window.BrandLexStaticRewrite;
+    const cached = rewriter.cacheResult(draft, region, tone, cache, terms);
+    if (cached) return cached;
+
+    const key = storage('sessionStorage', DEEPSEEK_KEY) || '';
+    let notice = key ? 'DeepSeek 未返回完整结果，请核对密钥后重试。'
+      : '当前为本地预览。可设置个人 DeepSeek API Key，启用全文改写和翻译。';
+    if (!key && rewriteGateway) {
+      try { return await requestPublicRewrite(body, signal); }
+      catch (error) {
+        signal?.throwIfAborted();
+        notice = {
+          400: '在线改写未接受此原稿，请检查或缩短文案。当前仅提供本地预览。',
+          413: '在线改写支持 4,000 字以内的原稿。当前仅提供本地预览。',
+          429: '在线改写请求较多，请稍后重试。当前仅提供本地预览。',
+        }[error.status] || '在线改写暂不可用，请稍后重试。当前仅提供本地预览。';
+      }
+    }
+
+    const report = await rewriter.rewrite({ draft, region, tone }, { ...resources, terms, key, signal });
+    return report.engine === 'local' ? { ...report, notice: [notice, report.notice].filter(Boolean).join(' ') } : report;
+  }
+
   async function copyOperation(path, options) {
     const isRewrite = path === '/api/rewrite';
     const body = bodyOf(options);
@@ -567,9 +622,8 @@
     ]);
     options.signal?.throwIfAborted();
     const { terms } = snapshot;
-    const key = adminUntil > Date.now() ? storage('sessionStorage', DEEPSEEK_KEY) || '' : '';
     const report = isRewrite
-      ? await window.BrandLexStaticRewrite.rewrite({ draft: text, region, tone }, { ...resources, terms, cache, key, signal: options.signal })
+      ? await rewriteCopy(body, terms, resources, cache, options.signal)
       : checkCopy(text, region, terms, resources);
     return {
       ...report,
@@ -611,8 +665,6 @@
       if (route === '/api/admin/logout') {
         if (!onlyKeys(bodyOf(options), [])) fail(400, '请刷新页面后退出维护模式。');
         setAdmin(0);
-        try { window.sessionStorage.removeItem(DEEPSEEK_KEY); }
-        catch { /* Continue to lock maintenance when browser storage is unavailable. */ }
         return success(sessionState(true));
       }
       if (route === '/api/rewrite' || route === '/api/check') return success(await copyOperation(route, options));
@@ -624,5 +676,5 @@
     fail(404, MISSING);
   }
 
-  window.BrandLexStaticEngine = Object.freeze({ request });
+  window.BrandLexStaticEngine = Object.freeze({ request, hasPublicRewrite: Boolean(rewriteGateway) });
 })();

@@ -38,7 +38,7 @@ class RewriterTests(unittest.TestCase):
     def setUp(self):
         self.environment = patch.dict(os.environ, {
             "DEEPSEEK_API_KEY": "", "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-            "DEEPSEEK_MODEL": "deepseek-chat"})
+            "DEEPSEEK_MODEL": ""})
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
@@ -104,7 +104,7 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(payload["response_format"], {"type": "json_object"})
         self.assertEqual(payload["thinking"], {"type": "disabled"})
         self.assertIsNone(result["error_code"])
-        self.assertEqual(payload["model"], "deepseek-chat")
+        self.assertEqual(payload["model"], "deepseek-flash")
         prompt = payload["messages"][0]["content"]
         self.assertIn("Mandatory Brand Glossary Constraints", prompt)
         self.assertIn("免運費", prompt)
@@ -118,13 +118,84 @@ class RewriterTests(unittest.TestCase):
         self.assertTrue(all(item["term_id"] != 999 for item in result["adaptations"]))
         self.assertEqual(result["cta_options"][0], "按連結了解詳情。")
 
-    def test_configured_base_and_model_are_used(self):
+    def test_configured_base_uses_flash_even_if_model_setting_is_stale(self):
         with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test", "DEEPSEEK_BASE_URL": "https://gateway.example/v1/",
                                      "DEEPSEEK_MODEL": "configured-model"}), \
                 patch("core.ai_rewriter.urlopen", return_value=response()) as call:
             rewrite_copy("包邮", "hk", "concise", TERMS)
         self.assertEqual(call.call_args.args[0].full_url, "https://gateway.example/v1/chat/completions")
-        self.assertEqual(json.loads(call.call_args.args[0].data)["model"], "configured-model")
+        self.assertEqual(json.loads(call.call_args.args[0].data)["model"], "deepseek-flash")
+
+    def test_media_styles_and_temperatures_for_out_of_glossary_drafts(self):
+        style_names = {
+            "hk": ["Lane Crawford", "香港 Instagram / Threads", "WhatsApp"],
+            "cn": ["微信公众号", "小红书", "抖音"],
+            "en": ["Luxury & DTC", "TikTok", "Shopify"],
+        }
+        draft = "周末有一场读书会。"
+        prompts = set()
+        for market, names in style_names.items():
+            for (tone, temperature), name in zip((("standard", 0.5), ("social", 0.75), ("concise", 0.35)), names):
+                with self.subTest(market=market, tone=tone), \
+                        patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                        patch("core.ai_rewriter.urlopen", return_value=response()) as call:
+                    result = rewrite_copy(draft, market, tone, [])
+                self.assertEqual(result["matched_glossary_terms"], [])
+                payload = json.loads(call.call_args.args[0].data)
+                self.assertEqual(payload["model"], "deepseek-flash")
+                self.assertEqual(payload["temperature"], temperature)
+                self.assertEqual(json.loads(payload["messages"][1]["content"]), {"source_draft": draft})
+                prompt = payload["messages"][0]["content"]
+                self.assertIn(name, prompt)
+                self.assertIn('{"terms":[],"matched_rules":[]}', prompt)
+                self.assertIn("3 to 6 concrete adaptations", prompt)
+                self.assertIn("even when the glossary and matched rules are empty", prompt)
+                self.assertIn("满299 means at least 299", prompt)
+                self.assertIn("including account follows, in both versions", prompt)
+                self.assertIn("Never infer a product feature", prompt)
+                self.assertIn("source_draft is the sole factual authority", prompt)
+                self.assertNotIn(draft, prompt)
+                prompts.add(prompt)
+        self.assertEqual(len(prompts), 9)
+
+    def test_adaptations_quote_actual_text_without_case_or_edge_whitespace_mismatches(self):
+        content = {
+            "primary_copy": "Discover our morning gathering.",
+            "alt_copy": "Make room for the Sunday reading circle.",
+            "cta_options": ["Explore the reading circle.", "See what's planned for Sunday."],
+            "adaptations": [
+                {"original": "  sunday book club  ", "adapted": " THE SUNDAY READING CIRCLE ",
+                 "reason": "英文社群语感", "term_id": 999},
+                {"original": "Sunday book club", "adapted": "the Sunday reading circle", "reason": "重复", "term_id": None},
+                {"original": "Sunday book club", "adapted": "gathering.\nMake room", "reason": "跨版本", "term_id": None},
+                {"original": "Fictional offer", "adapted": "our morning gathering", "reason": "虚构", "term_id": None},
+            ],
+        }
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                patch("core.ai_rewriter.urlopen", return_value=response(content)):
+            result = rewrite_copy("Join our Sunday Book Club.", "en", "social", [])
+        self.assertEqual(result["engine"], "deepseek")
+        self.assertEqual(result["adaptations"], [{"original": "Sunday Book Club", "adapted": "the Sunday reading circle",
+                                                   "reason": "英文社群语感", "term_id": None}])
+
+    def test_important_glossary_and_model_changes_share_a_six_edit_cap(self):
+        draft = "香港包邮。" + " ".join(f"source {index}" for index in range(10))
+        content = {
+            "primary_copy": "香港免運費。" + " ".join(f"output {index}" for index in range(10)),
+            "alt_copy": "了解香港免運費安排。",
+            "cta_options": ["查看詳情。", "查閱送貨安排。"],
+            "adaptations": [
+                {"original": f"source {index}", "adapted": f"output {index}", "reason": "改為港式語感"}
+                for index in range(10)
+            ],
+        }
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                patch("core.ai_rewriter.urlopen", return_value=response(content)):
+            result = rewrite_copy(draft, "hk", "standard", TERMS)
+        self.assertEqual(len(result["adaptations"]), 6)
+        self.assertEqual(result["adaptations"][0]["term_id"], 2)
+        self.assertEqual([row["original"] for row in result["adaptations"][1:]],
+                         [f"source {index}" for index in range(5)])
 
     def test_network_failures_return_clear_safe_fallback(self):
         for error in (URLError("private internals"), socket.timeout(),
@@ -399,6 +470,41 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(result["error_code"], "tls_error")
         self.assertIn("安全连接", result["notice"])
         self.assertNotIn("private-cert-path", result["notice"])
+
+    def test_live_english_prose_may_preserve_han_in_url_but_not_in_sentences(self):
+        url = "https://example.com/活動"
+        ctas = [f"Learn more at {url}", "Explore this weekend's event."]
+        content = {"primary_copy": f"Join our weekend reading circle. {url}", "alt_copy": "Make time for the book club.",
+                   "adaptations": [], "cta_options": ctas}
+        source = f"周末有读书会。查看详情 {url}"
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                patch("core.ai_rewriter.urlopen", return_value=response(content)):
+            result = rewrite_copy(source, "en", "standard", [])
+        self.assertEqual(result["engine"], "deepseek")
+        self.assertEqual(result["primary_copy"], content["primary_copy"])
+        self.assertEqual(result["cta_options"], ctas)
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                patch("core.ai_rewriter.urlopen", return_value=response({**content, "alt_copy": "𠀀 book club"})):
+            result = rewrite_copy(source, "en", "standard", [])
+        self.assertEqual(result["error_code"], "incomplete_translation")
+
+    def test_native_phrase_inflection_survives_glossary_post_processing(self):
+        from data.seed_terms import build_seed_terms
+        glossary = build_seed_terms()
+        cases = (
+            ("性價比高，買滿即送明信片。", "cn", "性价比挺高，买满即送明信片。"),
+            ("性价比高。", "hk", "性價比幾高。"),
+            ("性价比高。", "en", "It offers good value for money."),
+        )
+        for source, market, primary in cases:
+            with self.subTest(market=market), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                    patch("core.ai_rewriter.urlopen", return_value=response({
+                        "primary_copy": primary, "alt_copy": primary, "adaptations": [],
+                        "cta_options": ["Find out more.", "Explore the details."],
+                    })):
+                result = rewrite_copy(source, market, "standard", glossary)
+            self.assertEqual(result["engine"], "deepseek")
+            self.assertEqual(result["primary_copy"], primary)
 
     def test_incomplete_translation_and_truncated_response_are_distinct(self):
         chinese = {"primary_copy": "新品面霜。", "alt_copy": "A daily ritual.",

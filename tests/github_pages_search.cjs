@@ -7,7 +7,7 @@ const { webcrypto } = require('node:crypto');
 const output = process.argv[2];
 const origin = 'https://example.github.io/brandlex/';
 globalThis.window = globalThis;
-globalThis.document = { baseURI: origin };
+globalThis.document = { baseURI: origin, querySelector: () => null };
 globalThis.localStorage = globalThis.sessionStorage = { getItem: () => null };
 globalThis.crypto ??= webcrypto;
 globalThis.fetch = async input => {

@@ -1,6 +1,7 @@
 """The GitHub Pages artifact must work as a project site and exclude local state."""
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -15,6 +16,7 @@ from tests.test_homepage import PageElements
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_URL = "https://example.github.io/brandlex/"
+GATEWAY = "https://rewrite.example.net:8443/api/pages/rewrite"
 
 
 class GitHubPagesBuildTests(unittest.TestCase):
@@ -32,6 +34,7 @@ class GitHubPagesBuildTests(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(cls.project / "scripts" / "build_github_pages.py")],
             cwd=cls.project, capture_output=True, text=True, timeout=60,
+            env={**os.environ, "BRANDLEX_PUBLIC_REWRITE_URL": ""},
         )
         if result.returncode:
             raise AssertionError(result.stderr or result.stdout)
@@ -66,6 +69,34 @@ class GitHubPagesBuildTests(unittest.TestCase):
                 self.assertNotIn(path.suffix, {".db", ".pyc"})
                 if path.is_file():
                     self.assertNotIn(b"fixture-not-for-publication", path.read_bytes())
+
+    def test_pages_gateway_build_config_and_csp(self):
+        from scripts.build_github_pages import static_head
+
+        without_gateway = static_head("")
+        self.assertNotIn("brandlex-public-rewrite-url", without_gateway)
+        html = static_head(GATEWAY)
+        self.assertIn(f'<meta name="brandlex-public-rewrite-url" content="{GATEWAY}">', html)
+        self.assertIn("connect-src 'self' https://api.deepseek.com https://rewrite.example.net:8443;", html)
+        for invalid in (
+            "http://rewrite.example.net/api/pages/rewrite",
+            "https://user:pass@rewrite.example.net/api/pages/rewrite",
+            "https://rewrite.example.net/api/pages/rewrite?token=fixture",
+            "https://rewrite.example.net/api/pages/rewrite#",
+            "https://rewrite.example.net/api/rewrite",
+            "https://rewrite.example.net:65536/api/pages/rewrite",
+            'https://rewrite.example.net"; script-src *;/api/pages/rewrite',
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                static_head(invalid)
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is required for the public rewrite check")
+    def test_static_public_rewrite_uses_cache_or_a_credential_free_gateway(self):
+        result = subprocess.run(
+            ["node", str(ROOT / "tests" / "github_pages_rewrite.cjs"), str(self.output), GATEWAY],
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is required for the search parity check")
     def test_static_search_returns_the_flask_ranking_and_counts(self):

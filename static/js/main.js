@@ -198,8 +198,17 @@
     $('#admin-label').textContent = state.isAdmin ? '已解锁' : '维护模式';
     $('#admin-toggle').classList.toggle('is-admin', state.isAdmin);
     $('#admin-toggle').setAttribute('aria-label', state.isAdmin ? '维护模式已解锁，点击退出' : '解锁维护模式');
-    $('#deepseek-key-toggle').hidden = !(state.isAdmin && api.isStatic());
     if ($('#term-drawer').open) renderDrawer();
+  }
+
+  function renderRewriteSettings() {
+    if (!api.isStatic()) return;
+    $('#deepseek-key-toggle').hidden = false;
+    $('#rewrite-privacy-note').textContent = api.getDeepSeekKey()
+      ? '原稿与命中词条将直接发送至 DeepSeek，个人密钥仅在本次浏览器会话有效。'
+      : api.hasPublicRewrite()
+        ? '在线改写支持 4,000 字，经 BrandLex 服务将原稿与命中词条发送至 DeepSeek。'
+        : '当前可使用示例或本地预览。设置个人密钥后可连接 DeepSeek 进行全文改写。';
   }
 
   function renderLibrary(terms = state.terms, append = false) {
@@ -378,8 +387,8 @@
     const known = new Set(matched.map(term => term.id));
     const adaptations = report.adaptations || [];
     $('#adaptation-count').textContent = String(adaptations.length);
-    $('#adaptations-list').innerHTML = adaptations.length ? adaptations.map(item => `<div class="adaptation-row"><div><div class="adaptation-line"><span class="adaptation-original">${esc(item.original)}</span><span class="adaptation-arrow" aria-hidden="true">→</span><span class="adaptation-adapted">${esc(item.adapted)}</span></div><p>${esc(item.reason)}</p></div>${known.has(item.term_id) ? `<button class="glossary-link" data-open-term="${item.term_id}">词库标准</button>` : ''}</div>`).join('') : '<p class="no-adaptations">本次未发现需要调整的地区表达。</p>';
-    $('#matched-terms').innerHTML = matched.map(term => `<button class="matched-term" data-open-term="${term.id}"><small>词条</small>${esc(term[`term_${state.market}`] || term.term_en)}</button>`).join('');
+    $('#adaptations-list').innerHTML = adaptations.length ? adaptations.map(item => `<div class="adaptation-row"><div><div class="adaptation-line"><span class="adaptation-original">${esc(item.original)}</span><span class="adaptation-arrow" aria-hidden="true">→</span><span class="adaptation-adapted">${esc(item.adapted)}</span></div><p>${esc(item.reason)}</p></div>${known.has(item.term_id) ? `<button class="glossary-link" data-open-term="${esc(item.term_id)}">词库标准</button>` : ''}</div>`).join('') : '<p class="no-adaptations">本次暂无可核对的改动。</p>';
+    $('#matched-terms').innerHTML = matched.map(term => `<button class="matched-term" data-open-term="${esc(term.id)}"><small>词条</small>${esc(term[`term_${state.market}`] || term.term_en)}</button>`).join('');
     $('#cta-list').innerHTML = (report.cta_options || []).map((cta, index) => `<button class="cta-button" data-cta="${index}"><span>${esc(cta)}</span><span aria-hidden="true">+</span></button>`).join('');
     $('.cta-section').hidden = !(report.cta_options || []).length;
     $('#engine-label').textContent = api.engineLabel(report);
@@ -538,7 +547,7 @@
 
   async function loadBootstrap() {
     const data = await request('/api/bootstrap');
-    if (api.isStatic()) $('#rewrite-privacy-note').textContent = '默认在浏览器内改写。启用 DeepSeek 后，原稿与命中词条将发送至 DeepSeek。';
+    renderRewriteSettings();
     state = {
       ...state, categories: data.categories, samples: data.samples,
       isAdmin: data.is_admin === true, loading: false,
@@ -648,11 +657,12 @@
 
   function saveDeepSeekKey(event) {
     event.preventDefault();
-    if (!state.isAdmin || !api.isStatic()) return;
+    if (!api.isStatic()) return;
     const key = $('#deepseek-key-input').value;
     try {
       api.setDeepSeekKey(key);
       closeDialog('deepseek-key-dialog');
+      renderRewriteSettings();
       invalidateResult();
       toast(key.trim() ? '本次会话已启用 DeepSeek' : '已清除 DeepSeek API Key');
     } catch (error) { errorMessage('#deepseek-key-error', error.message); }

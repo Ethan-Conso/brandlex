@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: brandlex-rewrite
+    runtime: python
+    plan: free
+    autoDeployTrigger: "off"
+    buildCommand: pip install -r requirements-relay.txt
+    startCommand: gunicorn --bind "0.0.0.0:$PORT" --workers 1 --threads 4 --timeout 40 --no-control-socket pages_wsgi:application
+    healthCheckPath: /healthz
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: BRANDLEX_PAGES_ORIGIN
+        value: https://ethan-conso.github.io
+      - key: BRANDLEX_PAGES_TRUST_CLOUDFLARE
+        value: "1"
