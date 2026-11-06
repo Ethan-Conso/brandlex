@@ -1,0 +1,13 @@
+OpenCC dictionary data
+Copyright (c) 2010-2023 BYVoid and other contributors.
+https://github.com/BYVoid/OpenCC
+Licensed under the Apache License, Version 2.0 (see LICENSE.txt).
+
+These seven dictionary files are vendored without changes from
+opencc-python-reimplemented 0.1.7 (https://github.com/yichen0831/opencc-python),
+which packages the OpenCC dictionaries. This includes the complete ST/TS
+character and phrase tables and Hong Kong variant/reverse tables in that release.
+
+The BrandLex conversion implementation is independent code using longest-match
+phrase conversion followed by character conversion, retaining the dictionaries'
+first-listed alternative where a mapping has multiple candidates.

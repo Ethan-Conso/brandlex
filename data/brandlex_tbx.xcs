@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TBXXCS lang="en" name="Basic" version="2">
+  <header><title>BrandLex TBX-Basic constraints</title></header>
+  <languages>
+    <langInfo><langCode>en</langCode><langName>English</langName></langInfo>
+    <langInfo><langCode>zh-Hant-HK</langCode><langName>Traditional Chinese (Hong Kong)</langName></langInfo>
+    <langInfo><langCode>zh-Hans-CN</langCode><langName>Simplified Chinese (Mainland China)</langName></langInfo>
+  </languages>
+  <datCatSet>
+    <descripSpec name="subjectField" datcatId="ISO12620A-04">
+      <contents datatype="plainText"/>
+      <levels>termEntry</levels>
+    </descripSpec>
+    <descripSpec name="definition" datcatId="ISO12620A-0501">
+      <contents/>
+      <levels>termEntry</levels>
+    </descripSpec>
+    <descripSpec name="context" datcatId="ISO12620A-0503">
+      <contents/>
+      <levels>term</levels>
+    </descripSpec>
+  </datCatSet>
+</TBXXCS>

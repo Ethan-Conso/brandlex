@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BrandLex 跨市场营销文案改写与三语表达学习。支持香港繁中、内地简中与英文。">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#F4F4F5">
+  <title>BrandLex · 跨市场文案改写与三语表达学习</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/helpers.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/home.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/case_feed.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/static_rewrite.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/static_engine.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/api.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳至正文</a>
+  <header class="app-header">
+    <a class="brand" href="#home" aria-label="BrandLex 首页"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4.5h7a4 4 0 0 1 4 4v11H8a4 4 0 0 1-4-4v-11Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 7.5h5v12h-5M8 9h3M8 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span>BrandLex</span></a>
+    <nav class="main-nav" role="tablist" aria-label="工作视图">
+      <button class="nav-tab" id="tab-home" role="tab" aria-controls="view-home" aria-selected="true" data-view="home">首页</button>
+      <button class="nav-tab" id="tab-studio" role="tab" aria-controls="view-studio" aria-selected="false" tabindex="-1" data-view="studio">文案改写</button>
+      <button class="nav-tab" id="tab-library" role="tab" aria-controls="view-library" aria-selected="false" tabindex="-1" data-view="library">学习</button>
+    </nav>
+    <div class="header-actions">
+      <button class="button button-primary admin-only" data-action="add-term" hidden>新增词条</button>
+      <details class="export-menu"><summary class="button button-quiet">导出 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="export-options"><a href="/api/export/csv" download>Excel CSV</a><a href="/api/export/tbx" download>TBX</a><a href="/api/export/json" download>JSON</a></div></details>
+      <button class="button button-quiet maintenance-button" id="admin-toggle" aria-label="解锁维护模式"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 8V5.5a3 3 0 0 1 6 0V8" stroke="currentColor" stroke-width="1.5"/></svg><span id="admin-label">维护模式</span></button>
+      <button class="button button-quiet admin-only" id="admin-logout" hidden>退出维护</button>
+    </div>
+  </header>
+  <main class="app-main" id="main-content">
+    <div id="app-error" class="error-message app-error" role="alert" hidden></div>
+    <noscript><p class="error-message">请启用 JavaScript，使用文案改写与学习功能。</p></noscript>
+    <section class="workspace-view home-view" id="view-home" role="tabpanel" aria-labelledby="tab-home">
+      <section class="home-hero" aria-labelledby="home-title">
+        <canvas id="antigravity-canvas" aria-hidden="true"></canvas>
+        <div class="home-hero-content">
+          <button class="home-announcement" data-go-view="studio">New <span aria-hidden="true">·</span> DeepSeek + 品牌词库引擎驱动 <span aria-hidden="true">→</span></button>
+          <h1 id="home-title"><span>一处词库基准，</span><span>三地原生表达。</span></h1>
+          <p class="home-subtitle home-subtitle-desktop" data-home-caption>AI 文案改写与三语表达学习，覆盖香港、内地与全球市场。</p>
+          <p class="home-subtitle home-subtitle-mobile" data-home-caption>跨市场 AI 改写与三语表达学习。</p>
+          <div class="home-hero-actions">
+            <button class="home-pill home-pill-primary" data-go-view="studio">开始改写文案 <span aria-hidden="true">→</span></button>
+            <button class="home-pill home-pill-secondary" data-go-view="library">进入学习</button>
+          </div>
+        </div>
+        <div class="home-hero-orbit" aria-hidden="true"><span>EN</span><span>HK</span><span>CN</span></div>
+      </section>
+
+      <div class="home-content">
+        <section class="home-showcase" aria-label="三地文案互动示例">
+          <p class="home-stage-eyebrow" data-home-caption>One Brief <span aria-hidden="true">→</span> Three Markets</p>
+          <div class="home-preview">
+            <div class="home-window-bar">
+              <div class="home-window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="home-market-tabs" role="tablist" aria-label="预览市场">
+                <button class="is-active" data-home-market="hk" id="home-market-hk" role="tab" aria-controls="home-preview-panel" aria-selected="true" tabindex="0"><b>HK</b> 香港繁中</button>
+                <button data-home-market="cn" id="home-market-cn" role="tab" aria-controls="home-preview-panel" aria-selected="false" tabindex="-1"><b>CN</b> 内地简中</button>
+                <button data-home-market="en" id="home-market-en" role="tab" aria-controls="home-preview-panel" aria-selected="false" tabindex="-1"><b>EN</b> English</button>
+              </div>
+              <span class="home-window-note">示例预览</span>
+            </div>
+            <div class="home-source"><span>原稿</span><p id="home-source-copy">LUMA 联名香氛礼盒上线，11月15至17日预订享早鸟福利 HK$280，香港包邮。</p></div>
+            <div class="home-preview-output" id="home-preview-panel" role="tabpanel" aria-labelledby="home-market-hk" aria-live="polite">
+              <span class="home-output-label" id="home-preview-market">HK · 香港繁中</span>
+              <p id="home-preview-copy" lang="zh-HK">LUMA 跨界聯乘香氛禮盒，為日常添一縷香氣。
+11 月 15 至 17 日預訂，享早鳥禮遇 HK$280，香港免運費。</p>
+              <div class="home-preview-adaptations" id="home-preview-adaptations"><span>联名 → 跨界聯乘</span><span>早鸟福利 → 早鳥禮遇</span><span>包邮 → 免運費</span></div>
+            </div>
+            <div class="home-preview-footer"><span data-home-caption>示例效果 · 非实时生成</span><button class="home-pill home-pill-small home-pill-secondary" id="home-edit-draft" disabled>在工作台中试改 <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 15 15 5M6 5h9v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+          </div>
+        </section>
+
+        <section class="home-surfaces" aria-label="探索 BrandLex 功能">
+          <div class="home-surface-selectors" role="tablist" aria-label="产品能力" aria-orientation="vertical">
+            <button class="home-surface-selector is-active" data-home-surface="rewrite" id="home-surface-rewrite" role="tab" aria-controls="home-surface-panel-rewrite" aria-selected="true" tabindex="0"><span class="home-surface-number">01</span><span><strong>智能改写工作台</strong><span class="home-surface-caption" data-home-caption data-caption-limit="24">换个市场，保留同一份品牌语气。</span></span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="home-surface-selector" data-home-surface="glossary" id="home-surface-glossary" role="tab" aria-controls="home-surface-panel-glossary" aria-selected="false" tabindex="-1"><span class="home-surface-number">02</span><span><strong>三语表达学习</strong><span class="home-surface-caption" data-home-caption data-caption-limit="24">查到地道表达，点击即可带走。</span></span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="home-surface-selector" data-home-surface="export" id="home-surface-export" role="tab" aria-controls="home-surface-panel-export" aria-selected="false" tabindex="-1"><span class="home-surface-number">03</span><span><strong>权限保护与导出</strong><span class="home-surface-caption" data-home-caption data-caption-limit="24">安心维护，随时分享品牌标准。</span></span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="home-surface-stage">
+            <section class="home-surface-panel" data-home-surface-panel="rewrite" id="home-surface-panel-rewrite" role="tabpanel" aria-labelledby="home-surface-rewrite">
+              <div class="home-mini-editor">
+                <div class="home-mini-header"><span>BrandLex</span><span>文案预览</span></div>
+                <div class="home-mini-controls" role="group" aria-label="示例目标市场"><button data-mini-market="hk" class="is-active" aria-pressed="true">HK</button><button data-mini-market="cn" aria-pressed="false">CN</button><button data-mini-market="en" aria-pressed="false">EN</button></div>
+                <p class="home-mini-copy" id="home-mini-copy" lang="zh-HK">讓心意隨香氣抵達。
+LUMA 跨界聯乘禮盒，現已登場。</p>
+                <div class="home-mini-tones" role="group" aria-label="示例文案风格"><button data-mini-tone="standard" class="is-active" aria-pressed="true">品牌标准</button><button data-mini-tone="social" aria-pressed="false">社媒种草</button><button data-mini-tone="concise" aria-pressed="false">精炼转化</button></div>
+              </div>
+              <button class="home-pill home-pill-stage" data-go-view="studio">打开改写工作台 <span aria-hidden="true">→</span></button>
+            </section>
+            <section class="home-surface-panel" data-home-surface-panel="glossary" id="home-surface-panel-glossary" role="tabpanel" aria-labelledby="home-surface-glossary" hidden>
+              <div class="home-term-preview"><div class="home-term-preview-heading"><span>EN</span><span>HK</span><span>CN</span></div>
+                <div class="home-term-preview-row"><button data-copy="Product Seeding">Product Seeding</button><button data-copy="好物推介">好物推介</button><button data-copy="种草">种草</button></div>
+                <div class="home-term-preview-row"><button data-copy="Early-Bird Offer">Early-Bird Offer</button><button data-copy="早鳥禮遇">早鳥禮遇</button><button data-copy="早鸟福利">早鸟福利</button></div>
+                <div class="home-term-preview-row"><button data-copy="Pop-up Store">Pop-up Store</button><button data-copy="期間限定店">期間限定店</button><button data-copy="快闪店">快闪店</button></div>
+                <div class="home-term-preview-row"><button data-copy="Best-Seller">Best-Seller</button><button data-copy="皇牌產品">皇牌產品</button><button data-copy="爆款单品">爆款单品</button></div>
+              </div>
+              <button class="home-pill home-pill-stage" data-go-view="library">探索三语学习 <span aria-hidden="true">→</span></button>
+            </section>
+            <section class="home-surface-panel" data-home-surface-panel="export" id="home-surface-panel-export" role="tabpanel" aria-labelledby="home-surface-export" hidden>
+              <div class="home-security-visual"><div class="home-lock-orbit"><svg width="66" height="66" viewBox="0 0 80 80" fill="none" aria-hidden="true"><rect x="22" y="34" width="36" height="29" rx="6" stroke="currentColor" stroke-width="1.5"/><path d="M29 34V23a11 11 0 0 1 22 0v11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="40" cy="47" r="2" fill="currentColor"/><path d="M40 49v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="home-lock-status"></span></div><span class="home-security-label" data-home-caption>公开查阅，受控维护。</span></div>
+              <div class="home-export-pills"><a class="home-pill home-pill-stage" href="/api/export/csv" download data-home-export="csv">导出 CSV</a><a class="home-pill home-pill-stage" href="/api/export/tbx" download data-home-export="tbx">导出 TBX</a><a class="home-pill home-pill-stage" href="/api/export/json" download data-home-export="json">导出 JSON</a></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="home-scenario-cloud" aria-labelledby="home-scenarios-title">
+          <h2 id="home-scenarios-title">每一种营销场景，都有地道表达。</h2>
+          <p id="home-library-count" class="home-library-count" hidden></p>
+          <div id="home-scenario-pills" class="home-scenario-pills" role="group" aria-label="营销场景"></div>
+        </section>
+        <section class="home-liftoff" aria-labelledby="home-start-title"><h2 id="home-start-title">让每一次跨市场发声，<br>自然着陆。</h2><button class="home-pill home-pill-primary" data-go-view="studio">立即开始改写 <span aria-hidden="true">→</span></button></section>
+        <footer class="home-footer"><span>BrandLex</span><span>EN / HK / CN</span></footer>
+      </div>
+    </section>
+    <section class="workspace-view" id="view-studio" role="tabpanel" aria-labelledby="tab-studio" hidden>
+      <div class="studio-workspace">
+        <section class="editor-panel panel" aria-labelledby="editor-heading">
+          <div class="panel-heading"><h1 id="editor-heading">原稿</h1><button class="button button-quiet" id="clear-copy" disabled>清空</button></div>
+          <div class="sample-toolbar"><span class="section-label">示例</span><div id="sample-drafts" class="sample-pills"></div></div>
+          <label class="sr-only" for="copy-text">原稿文案</label>
+          <textarea id="copy-text" class="draft-textarea" placeholder="粘贴或输入待本地化的营销文案…" maxlength="20000" spellcheck="false"></textarea>
+          <div class="draft-stats" id="draft-stats" aria-live="polite">0 字符 · 0 字词</div>
+          <div class="editor-controls">
+            <div class="control-group"><span class="control-label" id="market-label">目标市场</span><div class="market-selector segmented" role="group" aria-labelledby="market-label">
+              <button class="market-pill is-active" data-market="hk" aria-pressed="true"><b>HK</b><span>香港繁中</span></button>
+              <button class="market-pill" data-market="cn" aria-pressed="false"><b>CN</b><span>内地简中</span></button>
+              <button class="market-pill" data-market="en" aria-pressed="false"><b>EN</b><span>English</span></button>
+            </div><span class="control-hint" id="market-hint">Instagram / Facebook</span></div>
+            <div class="control-group"><span class="control-label" id="tone-label">文案风格</span><div class="tone-selector segmented" role="group" aria-labelledby="tone-label"><button class="is-active" data-tone="standard" aria-pressed="true">品牌标准</button><button data-tone="social" aria-pressed="false">社媒种草</button><button data-tone="concise" aria-pressed="false">精炼转化</button></div></div>
+          </div>
+          <div id="copy-error" class="error-message" role="alert" hidden></div>
+          <div class="editor-footer"><span class="keyboard-hint"><kbd>⌘ / Ctrl</kbd> + <kbd>Enter</kbd></span><button class="button button-primary rewrite-button" id="rewrite-copy" disabled><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m3.5 16.5 10-10 3 3-10 10M12 3h5v5M4 3v4M2 5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>智能改写</span></button></div>
+        </section>
+        <section class="output-panel panel" id="copy-results" aria-label="改写结果" aria-busy="false">
+          <div class="panel-heading output-heading"><div class="version-tabs" role="tablist" aria-label="文案版本"><button id="version-primary" class="version-tab is-active" role="tab" aria-selected="true" data-version="primary">推荐版本</button><button id="version-alt" class="version-tab" role="tab" aria-selected="false" data-version="alt" tabindex="-1">备选短句版</button></div><span class="engine-badge" id="engine-label">待改写</span></div>
+          <div id="output-empty" class="output-empty"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 5.5h12l6 6v15H7v-21Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M19 5.5v6h6M12 16h8M12 21h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><p>改写结果将显示在这里</p><span>载入示例，或输入你的原稿。</span></div>
+          <div id="output-loading" class="output-loading" hidden aria-label="正在改写"><span class="skeleton skeleton-title"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton skeleton-short"></span><span class="loading-label"><span class="spinner"></span>正在整理表达与词库用法…</span></div>
+          <div id="output-content" hidden>
+            <p class="engine-notice" id="engine-notice" role="status" hidden></p>
+            <div class="rewritten-copy" id="rewritten-copy" role="tabpanel" aria-labelledby="version-primary" tabindex="0"></div>
+            <div class="output-toolbar"><span class="output-stats" id="output-stats"></span><div><button class="button button-quiet" id="use-output">替换原稿</button><button class="button button-secondary" id="copy-output"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 7V3H3v9h4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>复制全文</button></div></div>
+            <div class="result-details"><section class="adaptations-section"><h2>关键改动<span id="adaptation-count" class="small-count"></span></h2><div id="adaptations-list"></div><div class="matched-terms" id="matched-terms"></div></section><section class="cta-section"><div class="section-heading"><h2>结尾引导</h2><span class="section-label">点击加入当前版本</span></div><div class="cta-list" id="cta-list"></div></section></div>
+          </div>
+        </section>
+      </div>
+      <div class="workspace-note"><span id="rewrite-privacy-note">原稿不会存入词库。智能改写时，原稿与命中词条将发送至 DeepSeek。</span><button class="button button-quiet" id="deepseek-key-toggle" type="button" hidden>DeepSeek API Key</button><span>EN / HK / CN</span></div>
+    </section>
+    <section class="workspace-view" id="view-library" role="tabpanel" aria-labelledby="tab-library" hidden>
+      <div class="library-toolbar">
+        <div class="search-shell">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <label class="sr-only" for="library-search">搜索三语表达或场景</label>
+          <input type="search" id="library-search" placeholder="搜索三语表达或场景…" maxlength="300" autocomplete="off" aria-keyshortcuts="/">
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        <div class="category-filters" id="category-filters" role="group" aria-label="案例分类"></div>
+        <div class="library-actions">
+          <button class="button feed-shuffle" id="shuffle-feed" type="button" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 5v5h-5M4 19v-5h5m-4.8-4a8 8 0 0 1 13.3-4l2.5 4M4 14l2.5 4a8 8 0 0 0 13.3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>换一换</button>
+          <button class="button button-secondary admin-only" type="button" data-action="add-term" hidden>新增词条</button>
+          <button class="button button-quiet admin-only" type="button" id="reset-library" hidden>重置词库</button>
+        </div>
+      </div>
+      <p id="library-count" class="feed-status" aria-live="polite" tabindex="-1">正在加载…</p>
+      <p id="case-feed-message" class="feed-message" role="status">正在加载案例…</p>
+      <div class="case-feed-grid" id="case-feed-grid" aria-busy="true"></div>
+      <div class="library-footer">
+        <button class="button feed-footer-button" type="button" data-action="shuffle-feed" hidden>换一换 <span aria-hidden="true">→</span></button>
+        <button class="button feed-footer-button" id="load-more-terms" type="button" hidden>加载更多匹配案例</button>
+      </div>
+    </section>
+  </main>
+  <template id="case-card-template">
+    <article class="case-card">
+      <header class="case-header">
+        <span class="case-category" data-case-category></span>
+        <div class="case-controls">
+          <div class="case-languages" role="group" aria-label="例句语言">
+            <button type="button" data-case-language="hk" aria-pressed="true" aria-label="HK 香港繁中">HK</button>
+            <button type="button" data-case-language="cn" aria-pressed="false" aria-label="CN 内地简中">CN</button>
+            <button type="button" data-case-language="en" aria-pressed="false" aria-label="EN 英文">EN</button>
+          </div>
+          <button class="button case-try" type="button" data-try-case>试改 <svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 15 15 5M6 5h9v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </header>
+      <div class="case-expressions" role="group" aria-label="三地表达">
+        <button class="case-expression" type="button" data-case-expression="hk"><small>HK</small><span class="case-expression-text" lang="zh-HK"></span></button>
+        <button class="case-expression" type="button" data-case-expression="cn"><small>CN</small><span class="case-expression-text" lang="zh-CN"></span></button>
+        <button class="case-expression" type="button" data-case-expression="en"><small>EN</small><span class="case-expression-text" lang="en"></span></button>
+      </div>
+      <button class="case-copy" type="button" data-case-copy aria-label="复制当前例句"><span class="case-copy-text" lang="zh-HK"></span><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 7V3H3v9h4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+      <footer class="case-footer">
+        <p class="case-tip" data-case-tip></p>
+        <div class="case-actions">
+          <button class="button button-quiet" type="button" data-open-term>详情 <span aria-hidden="true">→</span></button>
+          <button class="button button-quiet admin-only" type="button" data-edit hidden>编辑</button>
+          <button class="button button-quiet admin-only" type="button" data-delete hidden>删除</button>
+        </div>
+      </footer>
+    </article>
+  </template>
+  <dialog class="term-drawer" id="term-drawer" aria-labelledby="drawer-title"><div class="drawer-header"><span class="section-label">词条详情</span><button class="icon-button" data-close="term-drawer" aria-label="关闭词条详情">×</button></div><div id="drawer-content"></div></dialog>
+  <dialog class="modal password-modal" id="admin-dialog" aria-labelledby="admin-dialog-title"><div class="modal-head"><h2 id="admin-dialog-title">维护模式</h2><button class="icon-button" type="button" data-close="admin-dialog" aria-label="关闭维护模式">×</button></div><p class="modal-description">输入管理口令，维护品牌词库。</p><form id="admin-form"><label for="admin-password">管理口令</label><input type="password" id="admin-password" name="password" required maxlength="300" autocomplete="current-password" placeholder="输入口令"><p id="admin-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" type="button" data-close="admin-dialog">取消</button><button class="button button-primary" id="admin-submit" type="submit">解锁</button></div></form></dialog>
+  <dialog class="modal password-modal" id="deepseek-key-dialog" aria-labelledby="deepseek-key-title">
+    <div class="modal-head"><h2 id="deepseek-key-title">DeepSeek API Key</h2><button class="icon-button" type="button" data-close="deepseek-key-dialog" aria-label="关闭 DeepSeek 设置">×</button></div>
+    <p class="modal-description">密钥仅保存在当前浏览器会话。启用后，原稿与命中词条会直接发送至 DeepSeek。留空保存可清除密钥。</p>
+    <form id="deepseek-key-form" autocomplete="off">
+      <label for="deepseek-key-input">API Key（选填）</label><input type="password" id="deepseek-key-input" maxlength="300" autocomplete="off" spellcheck="false" placeholder="输入 DeepSeek API Key">
+      <p id="deepseek-key-error" class="error-message" role="alert" hidden></p>
+      <div class="modal-footer"><button class="button button-secondary" type="button" data-close="deepseek-key-dialog">取消</button><button class="button button-primary" type="submit">保存</button></div>
+    </form>
+  </dialog>
+  <dialog class="modal term-modal" id="term-dialog" aria-labelledby="term-dialog-title"><div class="modal-head"><h2 id="term-dialog-title">新增词条</h2><button class="icon-button" type="button" data-close="term-dialog" aria-label="关闭词条编辑">×</button></div><form id="term-form"><div class="form-toolbar"><span class="section-label">三地表达与使用规范</span><button class="button button-quiet" id="fill-example" type="button">填入示例词条</button></div><div class="form-grid">
+    <div class="field field-full"><label for="field-term-en">English</label><input name="term_en" id="field-term-en" required maxlength="300"></div>
+    <div class="field"><label for="field-term-hk">香港繁中</label><input name="term_hk" id="field-term-hk" required maxlength="300"></div><div class="field"><label for="field-term-cn">内地简中</label><input name="term_cn" id="field-term-cn" required maxlength="300"></div>
+    <div class="field"><label for="field-category">场景分类</label><select name="category" id="field-category" required></select></div><div class="field"><label for="field-platforms">适用平台</label><input name="platforms" id="field-platforms" required maxlength="2000" placeholder="IG, 小红书, EDM"></div>
+    <div class="field field-full"><label for="field-aliases">搜索别称</label><input name="aliases" id="field-aliases" required maxlength="4000" placeholder="多个表达以逗号分隔"></div>
+    <div class="field field-full"><label for="field-meaning">简明释义</label><textarea name="meaning" id="field-meaning" required rows="2" maxlength="6000"></textarea></div><div class="field field-full"><label for="field-bad-example">避免写法</label><textarea name="bad_example" id="field-bad-example" required rows="2" maxlength="6000"></textarea></div>
+    <div class="field field-full"><label for="field-good-en">EN 例句</label><textarea name="good_example_en" id="field-good-en" required rows="2" maxlength="6000"></textarea></div><div class="field"><label for="field-good-hk">HK 例句</label><textarea name="good_example_hk" id="field-good-hk" required rows="3" maxlength="6000"></textarea></div><div class="field"><label for="field-good-cn">CN 例句</label><textarea name="good_example_cn" id="field-good-cn" required rows="3" maxlength="6000"></textarea></div>
+    <div class="field field-full"><label for="field-usage-tip">跨区贴士</label><textarea name="usage_tip" id="field-usage-tip" required rows="2" maxlength="6000"></textarea></div></div><p class="form-hint">平台与别称可用逗号分隔。</p><p id="term-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" type="button" data-close="term-dialog">取消</button><button class="button button-primary" type="submit" id="save-term">保存</button></div></form></dialog>
+  <dialog class="modal confirm-modal" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description"><div class="modal-head"><h2 id="confirm-title">确认操作</h2><button class="icon-button" data-close="confirm-dialog" aria-label="关闭确认">×</button></div><p id="confirm-description" class="modal-description"></p><p id="confirm-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" data-close="confirm-dialog">取消</button><button class="button button-danger" id="confirm-action">确认</button></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
