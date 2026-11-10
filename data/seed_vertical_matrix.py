@@ -9,6 +9,7 @@ import re
 
 
 _EN_WORD = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]+")
+_REPEATED_WORD = re.compile(r"\b([A-Za-z]+)(?:\s+\1)+\b", re.IGNORECASE)
 _LATIN_CJK = re.compile(r"(?<=[A-Za-z])(?=[\u3400-\u9fff])|(?<=[\u3400-\u9fff])(?=[A-Za-z])")
 _PROPER_NAMES = frozenset({"Asscher", "Bluetooth", "Matter", "Wi", "Fi"})
 
@@ -64,7 +65,7 @@ def _combination(category, platforms, attribute, form):
     term_en = name_en.format(en)
     term_hk = _LATIN_CJK.sub(" ", name_hk.format(hk))
     term_cn = _LATIN_CJK.sub(" ", name_cn.format(cn))
-    alias = name_en.format(alternate).replace("-", " ")
+    alias = _REPEATED_WORD.sub(r"\1", name_en.format(alternate).replace("-", " "))
     return _record(category, platforms, term_en, term_hk, term_cn, [alias],
                    f"「{term_cn}」常见于{context}的介绍。{meaning}", bad.format(term_cn),
                    (ex_en.format(_in_sentence(term_en)),

@@ -166,6 +166,6 @@ Joint Account|聯名戶口|联名账户|由多名账户持有人共同开立的�
 {en} Eligibility|{hk}開立資格|{cn}开户资格|申请{scope}时需符合的客户类型、身份和其他条件。|谁都可以开立{cn}，不用核实身份。|Check whether you are eligible for a {english} before starting your application.|提交申請前，請先查閱{hk}開立資格。|提交申请前，请先查看{cn}开户资格。|面对申请人列出{scope}的适用对象和所需材料，勿将初步符合写成审批通过。|{en} application eligibility
 {en} Application Documents|{hk}開戶所需文件|{cn}开户申请材料|开立{scope}时需要提交的身份、地址、业务或其他证明材料。|申请{cn}，直接发身份证照片到任意客服聊天窗口。|Use the official upload page to submit the documents requested for your {english}.|請透過官方上載頁面提交{hk}所需文件。|请通过官方上传入口提交{cn}所需申请材料。|香港常写「文件／上載」，内地写「材料／上传」。{scope}资料应走安全渠道。|{en} opening checklist
 {en} Monthly Fee|{hk}每月戶口費|{cn}账户月费|按月为维护{scope}收取的费用，可能有符合条件的减免。|{cn}不收开户费，就代表所有账户服务永久免费。|Check the monthly fee and any waiver conditions for your {english}.|查閱{hk}每月收費，留意有冇豁免條件。|查看{cn}账户月费及适用的减免条件。|费用为零时要说明期限及原因。{scope}如另有跨境交易等收费，不宜笼统写全免。|{en} maintenance fee
-{en} Account Closure|{hk}結束戶口|{cn}账户销户|终止使用{scope}，通常需先处理余额、在途交易和关联指令。|卸载应用就等于注销{cn}。|Before closing your {english}, check for outstanding payments and remaining funds.|結束{hk}前，請先處理未完成付款同戶口餘額。|办理{cn}销户前，请先处理在途款项和账户余额。|港版「結束戶口」，内地「销户」。{scope}如需多方确认，应在流程前告知。|Close {en}
+{en} Closure|結束{hk}|{cn}销户|终止使用{scope}，通常需先处理余额、在途交易和关联指令。|卸载应用就等于注销{cn}。|Before closing your {english}, check for outstanding payments and remaining funds.|結束{hk}前，請先處理未完成付款同戶口餘額。|办理{cn}销户前，请先处理在途款项和账户余额。|港版「結束戶口」，内地「销户」。{scope}如需多方确认，应在流程前告知。|Close {en}
 """, ("银行 App", "账户申请页")),
 )

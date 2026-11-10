@@ -431,6 +431,9 @@
   .header-actions .maintenance-button { width: 24px; }
   .header-actions .button { padding: 5px 3px; }
 }
+.drawer-definitions p + p { margin-top: 6px; }
+.toast { width: max-content; white-space: normal; text-align: center; }
+
 @media (prefers-reduced-motion: reduce) {
   .home-view *, .home-view *:before, .home-view *:after { animation: none!important; transition: none!important; transform: none!important; }
   .home-hero-orbit { transform: translateX(-50%)!important; }

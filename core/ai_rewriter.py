@@ -22,6 +22,7 @@ from core.chinese_converter import convert_script
 from core.copy_checker import MAX_COPY_LENGTH, _counts
 from core.rewrite_fallback import cta_options, local_preview
 from core.rewrite_errors import RewriteFailure, failure_code, failure_notice
+from core.rewrite_fidelity import _verify_factual_fidelity
 from core.rewrite_grounding import (
     _SCAN_URL, MAX_RAG_CONSTRAINTS, MAX_RAG_TERMS, apply_constraints, output_constraints, retrieve_constraints,
 )
@@ -318,7 +319,7 @@ def _validate_result(result):
     return deepcopy(result)
 
 
-def _normalize_output(result, constraints, market, matched):
+def _normalize_output(result, constraints, market, matched, source):
     all_variants = (*output_constraints(matched, market), *constraints)
     def normalize(value):
         return convert_script(apply_constraints(value.strip(), all_variants, market), market)
@@ -329,6 +330,7 @@ def _normalize_output(result, constraints, market, matched):
                               for value in (normalized["primary_copy"], normalized["alt_copy"],
                                             *normalized["cta_options"])):
         raise RewriteFailure("incomplete_translation")
+    _verify_factual_fidelity(source, normalized["primary_copy"], normalized["alt_copy"], normalized["cta_options"], market)
     return normalized
 
 
@@ -390,7 +392,7 @@ def rewrite_copy(text, target_market, tone="standard", glossary=None):
     if key and key != "your_deepseek_api_key_here":
         try:
             result = _normalize_output(_request_model(text, target_market, tone, matched, constraints, key),
-                                       constraints, target_market, matched)
+                                       constraints, target_market, matched, text)
             engine = "deepseek"
             error_code = None
         except (URLError, OSError, ValueError, TypeError, KeyError, IndexError, UnicodeError, RecursionError) as error:

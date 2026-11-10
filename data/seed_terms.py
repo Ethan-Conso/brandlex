@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from data.seed_brand_copy import BRAND_TERMS, COPY_TERMS
 from data.seed_commerce_growth import COMMERCE_TERMS, GROWTH_TERMS
+from data.seed_core_definitions import with_english_definition
 
 
 SOCIAL_CATEGORY = "社媒与种草"
@@ -104,7 +105,7 @@ SOCIAL_TERMS = [
             "UGC 是团队用语；消费者页面可写『用家分享／用户晒图』，转发和广告使用应分别取得适当授权。"),
     _social(11, "Influencer Collaboration", "KOL 合作", "达人合作",
             ["KOL", "influencer marketing", "博主合作", "創作者合作"], ["IG", "YouTube", "小红书"],
-            "品牌与有影响力的创作者共同制作或发布内容，借助其风格和受众介绍产品或活动。",
+            "关键意见领袖（KOL）是在特定领域有影响力的人。达人合作指品牌与这类创作者共同制作或发布内容。",
             "『这位博主是自然推荐，不需要提赞助。』——隐藏付费合作会损害信任。",
             "Paid partnership with Nora: three easy ways to style our linen shirt.",
             "與 Nora 合作呈獻：一件麻質恤衫，三種日常穿搭提案。",
@@ -226,7 +227,9 @@ SAMPLE_DRAFTS = [
 
 def build_seed_terms():
     """Return fresh records so editing a term never changes the defaults."""
-    return deepcopy(SOCIAL_TERMS + COMMERCE_TERMS + GROWTH_TERMS + BRAND_TERMS + COPY_TERMS)
+    return [with_english_definition(term) for term in deepcopy(
+        SOCIAL_TERMS + COMMERCE_TERMS + GROWTH_TERMS + BRAND_TERMS + COPY_TERMS
+    )]
 
 
 def build_sample_drafts():

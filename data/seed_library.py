@@ -9,6 +9,7 @@ from core.schema import CATEGORIES, validate_term
 from data.learning_anchor_copy import ANCHOR_EXAMPLES
 from data.lexicon_domains import polish_generated_terms
 from data.seed_beauty_fashion_tech import build_beauty_fashion_tech_terms
+from data.seed_core_definitions import ADDITIONAL_CORE_TERMS, with_english_definition
 from data.seed_finance_compliance import build_finance_compliance_terms
 from data.seed_food_travel import build_food_travel_terms
 from data.seed_marketing import build_marketing_terms
@@ -30,10 +31,11 @@ def build_default_library():
     additions = chain(
         build_marketing_terms(), build_beauty_fashion_tech_terms(),
         build_food_travel_terms(), build_finance_compliance_terms(),
+        ADDITIONAL_CORE_TERMS,
     )
     polished = polish_generated_terms(additions, reserved=flagships)
     terms = [*flagships, *(
-        validate_term({**_with_anchor_examples(record), "id": identifier}, require_id=True)
+        validate_term({**with_english_definition(_with_anchor_examples(record)), "id": identifier}, require_id=True)
         for identifier, record in enumerate(polished, len(flagships) + 1)
     )]
     counts = Counter(term["category"] for term in terms)

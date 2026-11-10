@@ -49,6 +49,35 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(self.ids("product 体验"), [1])
         self.assertEqual(self.ids("a/b testing"), [4])
 
+    def test_short_ascii_queries_match_whole_words_in_each_field(self):
+        engine = SearchEngine([
+            {"id": 1, "term_en": "ROAS"},
+            {"id": 2, "term_en": "ROAS Trend"},
+            {"id": 3, "term_en": "Track ROAS Today"},
+            {"id": 4, "meaning": "跟踪广告表现。 EN: Use ROAS to measure return."},
+            {"id": 5, "good_example_hk": "每週查看ROAS。"},
+            {"id": 6, "term_en": "Roast Date"},
+            {"id": 7, "meaning": "A slow-roasted main course."},
+            {"id": 8, "good_example_en": "With a side of roast potatoes."},
+            {"id": 9, "term_en": "Macroas Dashboard", "aliases": ["ROAS2"]},
+        ])
+        for query in ("ROAS", "ＲＯＡＳ"):
+            with self.subTest(query=query):
+                self.assertEqual([row["id"] for row in engine.search(query)], [1, 2, 3, 4, 5])
+        self.assertEqual([row["id"] for row in engine.search("roast")], [6, 8])
+
+    def test_short_ascii_tokens_cannot_match_inside_a_phrase(self):
+        engine = SearchEngine([
+            {"id": 1, "term_en": "ROAS Date"},
+            {"id": 2, "term_en": "Roast Date"},
+            {"id": 3, "term_en": "Track Macroas Date"},
+            {"id": 4, "term_en": "ROAS Dateline"},
+            {"id": 5, "term_en": "ROAS", "meaning": "Results by date."},
+            {"id": 6, "term_en": "ROAS", "good_example_en": "Pick a date."},
+            {"id": 7, "term_en": "ROAS", "good_example_en": "Pick a dateline."},
+        ])
+        self.assertEqual([row["id"] for row in engine.search("roas date")], [1, 5, 6])
+
     def test_category_is_exact_and_composes_with_query(self):
         self.assertEqual(self.ids(category="growth"), [3, 4])
         self.assertEqual(self.ids("ROAS", "growth"), [3])

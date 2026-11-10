@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const EDITS_KEY = 'brandlex_static_edits';
+  const LEGACY_SEED_MAX_ID = 3203;
   const ADMIN_KEY = 'brandlex_static_admin_until';
   const DEEPSEEK_KEY = 'brandlex_deepseek_key';
   const ADMIN_DIGEST = '27f9a8244ebd8b37a73ab917581ff97435e4bd623e2489125bba781bed8fc49c';
@@ -86,30 +87,37 @@
   }
 
   function readEdits(raw, defaults, categories) {
-    const startingId = (defaults.at(-1)?.id || 0) + 1;
+    const seedMaxId = defaults.at(-1)?.id || 0;
     const records = new Map(defaults.map(term => [term.id, term]));
-    let changes;
-    try { changes = JSON.parse(raw)?.records; }
-    catch { return { records, changes: {}, nextId: startingId }; }
+    let saved;
+    try { saved = JSON.parse(raw); }
+    catch { return { records, changes: {}, nextId: seedMaxId + 1, seedMaxId }; }
+    const previousMaxId = validId(saved?.seedMaxId) ? saved.seedMaxId : LEGACY_SEED_MAX_ID;
+    const edits = Object.entries(saved?.records || {}).flatMap(([key, record]) => {
+      const id = Number(key);
+      return validId(id) && String(id) === key && id < Number.MAX_SAFE_INTEGER ? [[id, record]] : [];
+    });
     const validChanges = {};
-    let nextId = startingId;
-    for (const [value, record] of Object.entries(changes || {})) {
-      const id = Number(value);
-      if (!validId(id) || String(id) !== value || id >= Number.MAX_SAFE_INTEGER) continue;
+    let nextId = edits.reduce((next, [id]) => Math.max(next, id + 1), seedMaxId + 1);
+    for (const [id, record] of edits) {
+      // Previously custom IDs may overlap terms appended to the bundled seed.
+      const overlapsNewDefault = id > previousMaxId && records.has(id);
       if (record === null) {
+        if (overlapsNewDefault) continue;
         records.delete(id);
         validChanges[id] = null;
       } else if (record && record.id === id) {
         try {
-          const validated = { id, ...validateRecord(record, categories) };
-          if (typeof record.updated_at === 'string' && !UNSUPPORTED.test(record.updated_at)) validated.updated_at = record.updated_at;
-          records.set(id, validated);
-          validChanges[id] = validated;
+          const validated = validateRecord(record, categories);
+          const savedId = overlapsNewDefault ? nextId++ : id;
+          const term = { id: savedId, ...validated };
+          if (typeof record.updated_at === 'string' && !UNSUPPORTED.test(record.updated_at)) term.updated_at = record.updated_at;
+          records.set(savedId, term);
+          validChanges[savedId] = term;
         } catch { continue; }
       }
-      nextId = Math.max(nextId, id + 1);
     }
-    return { records, changes: validChanges, nextId };
+    return { records, changes: validChanges, nextId, seedMaxId };
   }
 
   function normalizeSearch(value, foldMap, foldPattern) {
@@ -196,15 +204,24 @@
     return lastSnapshot;
   }
 
-  function rank(entry, query, tokens) {
+  function searchPattern(tokens) {
+    const shortWord = /^[a-z0-9]{1,5}$/;
+    const left = shortWord.test(tokens[0]) ? '(?<![a-z0-9])' : '';
+    const right = shortWord.test(tokens.at(-1)) ? '(?![a-z0-9])' : '';
+    const literal = tokens.join(' ').replace(/[.*+?^$(){}|[\]\\]/g, '\\$&');
+    return new RegExp(left + literal + right);
+  }
+
+  function rank(entry, query, phrase, tokens) {
     const { expressions, meaning, context } = entry;
     if (expressions.includes(query)) return 0;
-    if (expressions.some(value => value.startsWith(query))) return 1;
-    if (expressions.some(value => value.includes(query))) return 2;
-    if (tokens.length > 1 && tokens.every(token => expressions.some(value => value.includes(token)))) return 3;
-    const missing = tokens.filter(token => !meaning.includes(token) && !expressions.some(value => value.includes(token)));
-    if (!missing.length) return 4;
-    return missing.every(token => context.some(value => value.includes(token))) ? 5 : -1;
+    if (expressions.some(value => value.search(phrase) === 0)) return 1;
+    if (expressions.some(value => phrase.test(value))) return 2;
+    const missing = tokens.filter(token => !expressions.some(value => token.test(value)));
+    if (!missing.length) return 3;
+    const remaining = missing.filter(token => !token.test(meaning));
+    if (!remaining.length) return 4;
+    return remaining.every(token => context.some(value => token.test(value))) ? 5 : -1;
   }
 
   function orderedMatches(index, raw, category) {
@@ -220,11 +237,13 @@
     const postings = [...grams].map(gram => index.postings.get(gram));
     if (postings.some(group => !group)) return [];
     const [smallest, ...rest] = postings.sort((left, right) => left.size - right.size);
+    const phrase = searchPattern(tokens);
+    const tokenPatterns = tokens.length > 1 ? tokens.map(token => searchPattern([token])) : [phrase];
     const ranked = Array.from({ length: 6 }, () => []);
     for (const position of smallest) {
       const entry = index.entries[position];
       if ((category && entry.term.category !== category) || !rest.every(group => group.has(position))) continue;
-      const priority = rank(entry, query, tokens);
+      const priority = rank(entry, query, phrase, tokenPatterns);
       if (priority >= 0) ranked[priority].push(entry);
     }
     return ranked.flat();
@@ -379,10 +398,10 @@
     return sessionState(true);
   }
 
-  function writeEdits(changes) {
+  function writeEdits(changes, seedMaxId) {
     try {
       if (changes === null) window.localStorage.removeItem(EDITS_KEY);
-      else window.localStorage.setItem(EDITS_KEY, JSON.stringify({ records: changes }));
+      else window.localStorage.setItem(EDITS_KEY, JSON.stringify({ seedMaxId, records: changes }));
     } catch { fail(503, STORAGE_ERROR); }
   }
 
@@ -401,7 +420,7 @@
       const term = id ? snapshot.records.get(id) : null;
       if (id && !term) fail(404, MISSING);
       if (method === 'DELETE') {
-        writeEdits({ ...snapshot.changes, [id]: null });
+        writeEdits({ ...snapshot.changes, [id]: null }, snapshot.seedMaxId);
         return { id };
       }
       const body = bodyOf(options);
@@ -410,7 +429,7 @@
       }
       const editedId = id || snapshot.nextId;
       const record = { id: editedId, ...validateRecord({ ...term, ...body }, snapshot.metadata.categories), updated_at: new Date().toISOString() };
-      writeEdits({ ...snapshot.changes, [editedId]: record });
+      writeEdits({ ...snapshot.changes, [editedId]: record }, snapshot.seedMaxId);
       return copyTerm(record, record.updated_at);
     };
     return window.navigator?.locks ? window.navigator.locks.request(EDITS_KEY, change) : change();
@@ -574,6 +593,9 @@
     });
     if (!response.ok) fail(response.status, '在线改写未完成。');
     const { success, data } = await response.json();
+    if (success && data?.error_code === 'factual_mismatch') {
+      fail(422, '改写结果的价格、日期或数量与原稿不一致。当前仅提供本地预览。');
+    }
     if (!success || !validGatewayReport(data, body)) {
       fail(502, '在线改写未返回完整结果。');
     }
@@ -596,13 +618,15 @@
         notice = {
           400: '在线改写未接受此原稿，请检查或缩短文案。当前仅提供本地预览。',
           413: '在线改写支持 4,000 字以内的原稿。当前仅提供本地预览。',
+          422: error.message,
           429: '在线改写请求较多，请稍后重试。当前仅提供本地预览。',
         }[error.status] || '在线改写暂不可用，请稍后重试。当前仅提供本地预览。';
       }
     }
 
     const report = await rewriter.rewrite({ draft, region, tone }, { ...resources, terms, key, signal });
-    return report.engine === 'local' ? { ...report, notice: [notice, report.notice].filter(Boolean).join(' ') } : report;
+    return report.engine === 'local' && report.error_code !== 'factual_mismatch'
+      ? { ...report, notice: [notice, report.notice].filter(Boolean).join(' ') } : report;
   }
 
   async function copyOperation(path, options) {

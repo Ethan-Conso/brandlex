@@ -35,6 +35,9 @@ def matrix(category, topics, recipes):
             "context_en": context_en,
             "context_hk": context_hk,
             "context_cn": context_cn,
+            "recap_en": en.removesuffix(" Event"),
+            "recap_hk": hk.removesuffix("活動"),
+            "recap_cn": cn.removesuffix("活动"),
         }
         for recipe in _rows(recipes, 10):
             term_en, term_hk, term_cn, alias, meaning, bad, good_en, good_hk, good_cn, tip = (

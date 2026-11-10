@@ -64,7 +64,7 @@ async (page) => {
   await page.waitForFunction(() => document.querySelectorAll('[data-sample]').length === 4);
   assert(await $('#view-home').isVisible(), 'Homepage opens by default');
   const { data: bootstrap } = await api('/api/bootstrap');
-  assert(bootstrap.total === 3203 && bootstrap.categories.length === 12 && !bootstrap.is_admin,
+  assert(bootstrap.total === 3207 && bootstrap.categories.length === 12 && !bootstrap.is_admin,
     'Complete seed and public startup');
   const publicStatus = await page.evaluate(async token => {
     try {
@@ -128,6 +128,12 @@ async (page) => {
   await seedCard.locator('[data-open-term]').click();
   await $('#term-drawer .drawer-good').waitFor();
   assert(await $('#drawer-title').innerText() === 'Product Seeding', 'NFKC lookup and complete drawer');
+  const definitions = $('#term-drawer .drawer-definitions p');
+  assert(await definitions.count() === 2 && await definitions.first().getAttribute('lang') === 'zh-CN'
+    && await definitions.last().getAttribute('lang') === 'en', 'Both definitions are visible, Chinese first for HK');
+  await $('#term-drawer [data-language="en"]').click();
+  assert(await definitions.first().getAttribute('lang') === 'en'
+    && await definitions.last().getAttribute('lang') === 'zh-CN', 'English selection shows the English definition first');
   await page.keyboard.press('Escape');
   await seedCard.locator('[data-try-case]').click();
   await result();
@@ -213,12 +219,18 @@ async (page) => {
   await $('#admin-password').fill('brandlex2026');
   await $('#admin-submit').click();
   await $('#admin-dialog').waitFor({ state: 'hidden' });
+  const waitToast = message => page.waitForFunction(text => {
+    const toast = document.querySelector('#toast');
+    return toast.classList.contains('is-visible') && toast.textContent === text;
+  }, message);
+  await waitToast('维护模式已解锁（当前演示修改保存在本浏览器）');
   const fixtureName = 'BrandLex Pages Browser Fixture';
   await $('#view-library [data-action="add-term"]').click();
   await $('#fill-example').click();
   await $('#field-term-en').fill(fixtureName);
   await $('#save-term').click();
   await $('#term-dialog').waitFor({ state: 'hidden' });
+  await waitToast('词条已保存在本浏览器');
   await search(fixtureName);
   const fixture = cards.filter({ hasText: fixtureName });
   await fixture.locator('[data-edit]').click();
@@ -226,6 +238,7 @@ async (page) => {
   await $('#field-term-hk').fill(updated);
   await $('#save-term').click();
   await fixture.filter({ hasText: updated }).waitFor();
+  await waitToast('词条已保存在本浏览器');
   await page.reload();
   await $('#admin-logout').waitFor({ state: 'visible' });
   await search(fixtureName);
@@ -239,7 +252,7 @@ async (page) => {
     const download = await pending;
     assert(download.suggestedFilename().endsWith(`.${format}`) && await download.failure() === null, `Download ${format}`);
   }
-  const exportChecks = await page.evaluate(async ({ fixtureName, updated }) => {
+  const exportChecks = await page.evaluate(async ({ fixtureName, updated, seedTotal }) => {
     const output = format => window.BrandLexStaticEngine.request(`/api/export/${format}`);
     const csv = (await output('csv')).blob;
     const bom = [...new Uint8Array(await csv.slice(0, 3).arrayBuffer())].join(',');
@@ -250,26 +263,27 @@ async (page) => {
       csv: bom === '239,187,191' && (await csv.text()).includes(updated),
       tbx: xml.documentElement.localName === 'martif' && xml.documentElement.getAttribute('type') === 'TBX-Basic'
         && !xml.querySelector('parsererror') && xml.documentElement.textContent.includes(updated),
-      json: data.length === 3204 && data.some(record => record.term_en === fixtureName && record.term_hk === updated),
+      json: data.length === seedTotal + 1 && data.some(record => record.term_en === fixtureName && record.term_hk === updated),
     };
-  }, { fixtureName, updated });
+  }, { fixtureName, updated, seedTotal: bootstrap.total });
   assert(Object.values(exportChecks).every(Boolean), `Export content: ${JSON.stringify(exportChecks)}`);
 
   await fixture.locator('[data-delete]').click();
   await $('#confirm-action').click();
   await waitCards(0);
+  await waitToast('词条已保存在本浏览器');
   await search('Product Seeding');
   const seeded = $(`#case-feed-grid > [data-term-id="${seedId}"]`);
   await seeded.locator('[data-delete]').click();
   await $('#confirm-action').click();
   await seeded.waitFor({ state: 'detached' });
-  assert((await api('/api/bootstrap')).data.total === 3202, 'Deleting a seed term persists as a local override');
+  assert((await api('/api/bootstrap')).data.total === bootstrap.total - 1, 'Deleting a seed term persists as a local override');
   await $('#library-search').fill('');
   await waitCards(6);
   await $('#reset-library').click();
   await $('#confirm-action').click();
   await $('#confirm-dialog').waitFor({ state: 'hidden' });
-  assert((await api('/api/bootstrap')).data.total === 3203, 'Reset restores the seed corpus');
+  assert((await api('/api/bootstrap')).data.total === bootstrap.total, 'Reset restores the seed corpus');
   await $('#admin-logout').click();
   await $('#confirm-action').click();
   await $('#admin-logout').waitFor({ state: 'hidden' });

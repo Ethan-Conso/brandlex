@@ -16,6 +16,7 @@ _NOTICES = {
     "invalid_response": "DeepSeek 改写结果格式异常，请重试。",
     "incomplete_response": "DeepSeek 改写结果未完成，请重试。",
     "incomplete_translation": "DeepSeek 英文改写尚未完整，请重试。",
+    "factual_mismatch": "DeepSeek 改写中的价格、日期或其他数字与原稿不一致，请重试。",
 }
 
 

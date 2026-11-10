@@ -6,7 +6,7 @@ const { webcrypto } = require('node:crypto');
 const [output, gateway] = process.argv.slice(2);
 const site = 'https://example.github.io/brandlex/';
 const provider = 'https://api.deepseek.com/chat/completions';
-const draft = '用新的方式开启平凡的一天。';
+const draft = '让平凡的日常多点新意。';
 const mockedKey = 'fixture-personal-key';
 const cache = JSON.parse(readFileSync(join(output, 'data/pages_rewrites.json'), 'utf8'));
 const editedSample = `${cache.drafts[0].text}\n文案补充说明。`;
@@ -53,11 +53,11 @@ globalThis.fetch = async (input, options) => {
   }) } }] });
 };
 
-async function browser(endpoint = '', key = '') {
+async function browser(endpoint = '', key = '', edits) {
   const stored = new Map(key ? [['brandlex_deepseek_key', key]] : []);
   const storage = map => ({ getItem: name => map.get(name) ?? null, setItem: (name, value) => map.set(name, value),
     removeItem: name => map.delete(name) });
-  globalThis.localStorage = storage(new Map());
+  globalThis.localStorage = storage(new Map(edits ? [['brandlex_static_edits', JSON.stringify(edits)]] : []));
   globalThis.sessionStorage = storage(stored);
   globalThis.document = { baseURI: site, querySelector: () => endpoint && { content: endpoint } };
   delete require.cache[enginePath];
@@ -73,6 +73,7 @@ async function browser(endpoint = '', key = '') {
     return result.data;
   };
   return {
+    engine,
     rewrite: (text, target_market, tone) => post('/api/rewrite', { text, target_market, tone }),
     logout: () => post('/api/admin/logout', {}),
   };
@@ -105,6 +106,11 @@ async function browser(endpoint = '', key = '') {
     assert.equal(invalid.engine, 'local');
     assert.deepEqual(calls.splice(0), [gateway]);
   }
+  gatewayOverrides = { engine: 'fallback', error_code: 'factual_mismatch' };
+  const mismatch = await publicUser.rewrite(draft, 'en', 'standard');
+  assert.equal(mismatch.engine, 'local');
+  assert.match(mismatch.notice, /与原稿不一致/);
+  assert.deepEqual(calls.splice(0), [gateway]);
   gatewayOverrides = {};
 
   const oversized = await publicUser.rewrite('字'.repeat(4001), 'hk', 'standard');
@@ -132,4 +138,21 @@ async function browser(endpoint = '', key = '') {
   assert.equal(local.engine, 'local');
   assert.match(local.notice, /全文改写/);
   assert.deepEqual(calls, []);
+
+  const firstTerm = (await offline.engine.request('/api/terms/1')).data;
+  const localName = 'Saved Draft Overlay';
+  const updated = await browser('', '', { records: {
+    3204: { ...firstTerm, id: 3204, term_en: localName },
+    3205: null,
+    3208: { ...firstTerm, id: 3208, term_en: 'Another Saved Overlay' },
+  } });
+  const newDefaults = await Promise.all([3204, 3205].map(id => updated.engine.request(`/api/terms/${id}`)));
+  assert(newDefaults.every(({ data }) => data.term_en !== localName && data.meaning.includes(' EN: ')));
+  const relocated = (await updated.engine.request('/api/terms?q=Saved+Draft+Overlay')).data.terms[0];
+  assert.equal(relocated.term_en, localName);
+  assert(relocated.id > 3208);
+  assert.equal((await updated.engine.request('/api/terms/3208')).data.term_en, 'Another Saved Overlay');
+
+  const current = await browser('', '', { seedMaxId: 3207, records: { 3205: null } });
+  await assert.rejects(current.engine.request('/api/terms/3205'), { status: 404 });
 })().catch(error => { process.stderr.write(`${error.stack}\n`); process.exitCode = 1; });

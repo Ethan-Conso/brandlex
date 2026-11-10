@@ -8,6 +8,7 @@ from core.chinese_converter import convert_script
 from core.schema import validate_term
 from data.lexicon_domains import learning_tip, polish_generated_terms
 from data.seed_beauty_fashion_tech import build_beauty_fashion_tech_terms
+from data.seed_core_definitions import ADDITIONAL_CORE_TERMS
 from data.seed_finance_compliance import build_finance_compliance_terms
 from data.seed_food_travel import build_food_travel_terms
 from data.seed_marketing import build_marketing_terms
@@ -18,6 +19,7 @@ def generated_source():
     additions = chain(
         build_marketing_terms(), build_beauty_fashion_tech_terms(),
         build_food_travel_terms(), build_finance_compliance_terms(),
+        ADDITIONAL_CORE_TERMS,
     )
     return [{**term, "id": index} for index, term in enumerate(additions, 101)]
 
@@ -76,7 +78,7 @@ class LearningCopyTests(unittest.TestCase):
 
     def test_entire_corpus_is_valid_ordered_distinct_and_has_compact_takeaways(self):
         full = self.flagships + self.polished
-        self.assertEqual([term["id"] for term in full], list(range(1, 3204)))
+        self.assertEqual([term["id"] for term in full], list(range(1, 3208)))
         self.assertGreater(sum(raw["term_en"] != new["term_en"] for raw, new in zip(self.raw, self.polished)), 200)
         for field in ("term_en", "term_hk", "term_cn"):
             self.assertEqual(len({term[field].casefold() for term in full}), len(full))

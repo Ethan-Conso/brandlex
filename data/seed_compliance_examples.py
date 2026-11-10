@@ -97,7 +97,7 @@ Referral Promotion|推薦有賞|邀请奖励活动|符合推荐和受邀条件�
 """,
         """
 {en} Eligibility Criteria|{hk}參加資格|{cn}参加条件|说明{scope}可参加的对象、地区、渠道或最低门槛。|宣传人人可参加{cn}，却不说明新客限定。|Check whether you qualify for the {english} before signing up.|登記{hk}前，先查閱參加資格。|报名参加{cn}前，请先查看参加条件。|把{scope}最可能影响决定的资格放在领取或付款动作前，别只写「适用条款」。|{en} qualification rules
-{en} Offer Period|{hk}優惠日期|{cn}活动期限|明确{scope}开始、结束的日期、时间和必要的时区。|没有真实截止时间的{cn}，却每日重复说「最后一天」。|Check the start date and closing time for the {english} before you join.|參加{hk}前，先睇清楚開始日期同截止時間。|参加{cn}前，请查看开始日期和截止时间。|{scope}的报名、付款和领取可能有不同截止日，按市场标出时区与适用时段。|{en} promotion dates
+{en} Period|{hk}適用日期|{cn}有效期|明确{scope}开始、结束的日期、时间和必要的时区。|没有真实截止时间的{cn}，却每日重复说「最后一天」。|Check the start date and closing time for the {english} before you join.|參加{hk}前，先睇清楚開始日期同截止時間。|参加{cn}前，请查看开始日期和截止时间。|{scope}的报名、付款和领取可能有不同截止日，按市场标出时区与适用时段。|Dates for {en}
 {en} Exclusions|{hk}不適用項目|{cn}活动排除项|列出{scope}中不计入或不受理的商品、付款方式、日期或用户群。|说全场可参加{cn}，到结账才排除热门款。|See the excluded products and channels before taking up the {english}.|參加{hk}前，可先查閱不適用貨品及渠道。|参加{cn}前，请先查看不适用商品和渠道。|不要用「个别项目除外」模糊{scope}实质限制，给出可直接核对的清单或入口。|{en} exclusions list
 {en} Participation Cap|{hk}參加上限|{cn}参与上限|规定{scope}可参加次数、活动名额或每人可享的额度。|把限量{cn}写成人人不限次享用。|Check the per-customer limit and remaining places for the {english}.|可查閱{hk}嘅每人上限同剩餘名額。|请查看{cn}的每人参与上限及剩余名额。|区分{scope}的名额、每人次数与金额上限。若剩余信息会变化，说明更新时间。|{en} participation limit
 {en} Material Terms|{hk}重要條款|{cn}关键条款|为{scope}提炼影响顾客决定的条件，在行动之前清楚呈现。|标题只写{cn}，收费与限制都藏在长条款。|Read the key terms of the {english} before confirming.|確認參加{hk}前，請先查閱重要條款。|确认参加{cn}前，请先查看关键条款。|{scope}的主要资格、费用和限制宜靠近主按钮，完整细则仍可另页提供。|{en} key conditions

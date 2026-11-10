@@ -4,6 +4,7 @@ import collections
 from contextlib import closing
 import json
 from pathlib import Path
+import re
 import sqlite3
 import subprocess
 import sys
@@ -30,6 +31,44 @@ FIELDS = {
 
 
 class SeedContentTests(unittest.TestCase):
+    def test_seed_english_copy_has_no_accidental_repetitions_or_package_prepositions(self):
+        from data.seed_library import build_default_library
+
+        terms = build_default_library()
+        errors = re.compile(r"\b([A-Za-z]+)\s+\1\b|\bincluded at the\b", re.IGNORECASE)
+        defects = [
+            (term["id"], field, match.group())
+            for term in terms
+            for field, value in term.items()
+            for text in (value if isinstance(value, list) else [value])
+            if isinstance(text, str) and (match := errors.search(text))
+        ]
+        self.assertEqual(defects, [])
+        by_id = {term["id"]: term for term in terms}
+        self.assertEqual(by_id[2936]["term_en"], "Joint Account Closure")
+        self.assertEqual(by_id[2669]["good_example_en"],
+                         "See what's included in the residential meeting package and how to get there.")
+
+    def test_named_core_terms_have_bilingual_definitions_in_the_published_seed(self):
+        from data.seed_library import build_default_library
+
+        terms = build_default_library()
+        self.assertEqual(terms, json.loads((ROOT / "data/glossary_seed.json").read_text(encoding="utf-8")))
+        required = {
+            "CTR", "ROAS", "KOL", "KOC", "UGC", "CTA", "EDM", "GMV", "SEO", "SEM",
+            "Dewy Lip Tint", "Absolute Advertising Claim", "Joint Account Closure",
+            "Residential Meeting Package", "Pop-up Store",
+        }
+        bilingual = [term for term in terms if " EN: " in term["meaning"]]
+        self.assertTrue(set(range(1, 49)).issubset(term["id"] for term in bilingual))
+        expressions = {value for term in bilingual for value in (term["term_en"], *term["aliases"])}
+        self.assertEqual(required - expressions, set())
+        for term in bilingual:
+            chinese, english = term["meaning"].split(" EN: ")
+            with self.subTest(term=term["term_en"]):
+                self.assertRegex(chinese, r"[\u4e00-\u9fff].*。$")
+                self.assertRegex(english, r"^[A-Z].*\.$")
+
     def test_exactly_one_hundred_terms_twenty_per_category(self):
         terms = build_seed_terms()
         self.assertEqual(len(terms), 100)

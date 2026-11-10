@@ -118,6 +118,81 @@ class RewriterTests(unittest.TestCase):
         self.assertTrue(all(item["term_id"] != 999 for item in result["adaptations"]))
         self.assertEqual(result["cta_options"][0], "按連結了解詳情。")
 
+    def test_changed_or_missing_prices_and_dates_use_safe_preview(self):
+        source = "禮盒售價HK$280，11月30日發售。"
+        translated = "The gift set launches on November 30 at HKD 280."
+        for changes in (
+            {"primary_copy": "The gift set launches on December 31 at HK$820."},
+            {"primary_copy": "The gift set launches on November 30 at US$280."},
+            {"alt_copy": "Discover the new gift set."},
+            {"alt_copy": "The gift set launches on November 30."},
+            {"cta_options": ["Shop on November 31.", "Explore the gift set."]},
+        ):
+            content = {"primary_copy": translated, "alt_copy": translated, "adaptations": [],
+                       "cta_options": ["Explore the gift set.", "Mark November 30."], **changes}
+            with self.subTest(changes=changes), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                    patch("core.ai_rewriter.urlopen", return_value=response(content)):
+                result = rewrite_copy(source, "en", glossary=[])
+            self.assertEqual(result["engine"], "fallback")
+            self.assertEqual(result["error_code"], "factual_mismatch")
+            self.assertIn("HK$280", result["primary_copy"])
+
+    def test_inclusive_date_range_rejects_wrong_duration_in_either_draft_or_cta(self):
+        source = "11月15至17日預訂禮盒，售價 HK$280。"
+        for market, valid, wrong, neutral in (
+            ("hk", "11月15日至17日預訂禮盒，HK$280，呢三日記得留意。", "趁呢兩日預訂。", "瞭解禮盒詳情。"),
+            ("cn", "11月15日至17日预订礼盒，HK$280，这三天记得留意。", "这两天抓紧预订。", "了解礼盒详情。"),
+            ("en", "Reserve from 15 to 17 November for HK$280, for three days only.", "Reserve during these two days.",
+             "Explore the gift set."),
+        ):
+            for field in ("primary_copy", "alt_copy", "cta_options"):
+                content = {"primary_copy": valid, "alt_copy": valid, "cta_options": [neutral, neutral], "adaptations": []}
+                content = {**content, field: [neutral, wrong] if field == "cta_options" else valid + " " + wrong}
+                with self.subTest(market=market, field=field), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                        patch("core.ai_rewriter.urlopen", return_value=response(content)):
+                    result = rewrite_copy(source, market, glossary=[])
+                self.assertEqual(result["error_code"], "factual_mismatch")
+
+    def test_equivalent_localized_numbers_are_accepted(self):
+        for source, primary, alternate in (
+            ("新品85折。", "Take 15% off the new collection.", "Save 15% on the new collection."),
+            ("新品8折。", "Take 20% off the new collection.", "Save 20% on the new collection."),
+            ("新品九折。", "Take 10% off the new collection.", "Save 10% on the new collection."),
+            ("新品15% off。", "Take 15% off the new collection.", "Save 15% on the new collection."),
+            ("11月推出。", "Launching in November.", "Nov launch."),
+            ("十一月二十日預訂，售價港幣二百八十元。", "Reserve on 20 November at HKD 280.",
+             "Book on November twentieth for two hundred and eighty Hong Kong dollars."),
+            ("15至17日預訂。", "Reserve from the 15th through the 17th.", "Book between the 15th and the 17th."),
+            ("周六至周日11:00–18:00。", "Open Saturday and Sunday, 11 am to 6 pm.",
+             "Come by Saturday or Sunday between 11:00 and 18:00."),
+            ("滿299免運費，首五十位到店客人有禮。", "Free shipping on orders of 299 or more. A gift for the first 50 visitors.",
+             "Orders of 299+ ship free. The first fifty guests receive a gift."),
+            ("用新的方式开启平凡的一天。", "Give your morning a brighter start.", "Make the ordinary feel fresh."),
+        ):
+            content = {"primary_copy": primary, "alt_copy": alternate, "cta_options": ["See the offer.", "Learn more."],
+                       "adaptations": []}
+            with self.subTest(source=source), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                    patch("core.ai_rewriter.urlopen", return_value=response(content)):
+                result = rewrite_copy(source, "en", glossary=[])
+            self.assertEqual(result["engine"], "deepseek")
+            self.assertEqual(result["primary_copy"], primary)
+
+    def test_labeled_prices_and_relative_dates_keep_their_roles(self):
+        source = "礼盒售价：280，30日发售。"
+        valid = "The gift set costs 280 and goes on sale on the 30th."
+        for alternate, code in (
+            ("Gift set price: 280. Available on the 30th.", None),
+            ("The gift set goes on sale on the 30th.", "factual_mismatch"),
+            ("The gift set costs 280 and is on sale for 30 days.", "factual_mismatch"),
+            ("280 gift sets go on sale on the 30th.", "factual_mismatch"),
+        ):
+            content = {"primary_copy": valid, "alt_copy": alternate, "adaptations": [],
+                       "cta_options": ["Explore the gift set.", "Discover the collection."]}
+            with self.subTest(alternate=alternate), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                    patch("core.ai_rewriter.urlopen", return_value=response(content)):
+                result = rewrite_copy(source, "en", glossary=[])
+            self.assertEqual(result["error_code"], code)
+
     def test_configured_base_uses_flash_even_if_model_setting_is_stale(self):
         with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test", "DEEPSEEK_BASE_URL": "https://gateway.example/v1/",
                                      "DEEPSEEK_MODEL": "configured-model"}), \
@@ -346,13 +421,14 @@ class RewriterTests(unittest.TestCase):
         self.assertEqual(apply_constraints(exact, constraints, "hk"), exact)
         self.assertEqual(apply_constraints(apply_constraints("禮盒免運。", constraints, "hk"),
                                            constraints, "hk"), "禮盒免運費。")
-        content = {"primary_copy": exact, "alt_copy": "禮盒免運費。", "adaptations": [],
+        alternate = "免運費禮盒，早鳥禮遇至3月20日。"
+        content = {"primary_copy": exact, "alt_copy": alternate, "adaptations": [],
                    "cta_options": ["免運費詳情請查詢。", "了解更多。"]}
         with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
                 patch("core.ai_rewriter.urlopen", return_value=response(content)):
-            result = rewrite_copy("禮盒包邮。", "hk", "standard", glossary)
+            result = rewrite_copy("早鸟福利至3月20日，礼盒包邮。", "hk", "standard", glossary)
         self.assertEqual(result["primary_copy"], exact)
-        self.assertEqual(result["alt_copy"], "禮盒免運費。")
+        self.assertEqual(result["alt_copy"], alternate)
         self.assertEqual(result["cta_options"][0], "免運費詳情請查詢。")
         self.assertEqual(rewrite_copy("禮盒免運費。", "hk", "standard", glossary)["primary_copy"], "禮盒免運費。")
 

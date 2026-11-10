@@ -19,6 +19,8 @@ sys.path.insert(0, str(ROOT))
 
 from core.ai_rewriter import MODEL, rewrite_copy
 from core.configuration import load_environment
+from core.rewrite_errors import RewriteFailure
+from core.rewrite_fidelity import _verify_factual_fidelity
 from core.search_engine import SearchEngine
 
 
@@ -28,7 +30,7 @@ TONES = ("standard", "social", "concise")
 REPORT_FIELDS = ("primary_copy", "alt_copy", "adaptations", "cta_options", "counts", "source_counts",
                  "engine", "target_market", "tone")
 RETRYABLE = {"rate_limited", "timeout", "service_unavailable", "invalid_response",
-             "incomplete_response", "incomplete_translation"}
+             "incomplete_response", "incomplete_translation", "factual_mismatch"}
 
 
 def read_data(filename):
@@ -78,6 +80,7 @@ def generate(drafts, glossary):
 
 
 def write_cache(cache, key):
+    validate_fidelity(cache)
     content = json.dumps(cache, ensure_ascii=False, separators=(",", ":")) + "\n"
     if key in content or re.search(r"\bsk-[A-Za-z0-9]{20,}\b", content):
         raise RuntimeError("The generated cache contains a possible credential and was rejected.")
@@ -89,6 +92,16 @@ def write_cache(cache, key):
             path.replace(DATA / "pages_rewrites.json")
         finally:
             path.unlink(missing_ok=True)
+
+
+def validate_fidelity(cache):
+    for draft in cache["drafts"]:
+        for variant, report in draft["rewrites"].items():
+            try:
+                _verify_factual_fidelity(draft["text"], report["primary_copy"], report["alt_copy"],
+                                         report["cta_options"], report["target_market"])
+            except RewriteFailure as error:
+                raise RuntimeError(f"{draft['id']} {variant} failed ({error.code}).") from error
 
 
 def main():

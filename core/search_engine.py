@@ -22,6 +22,7 @@ _ALTERNATIVES = re.compile(
     r"\s+/\s+|[／|]|(?<=[\u3400-\u9fff])\s*/\s*|\s*/\s*(?=[\u3400-\u9fff])"
 )
 _ASCII_WORD = re.compile(r"[a-z0-9_]+")
+_SHORT_SEARCH_WORD = re.compile(r"[a-z0-9]{1,5}")
 _HAN = re.compile(r"[\u3400-\u9fff\uf900-\ufaff\U00020000-\U000323af]")
 FEED_BATCH_SIZE = 6
 _FEATURED_EXPRESSIONS = frozenset({
@@ -83,6 +84,13 @@ def _validate_records(terms: Iterable[Mapping]) -> tuple[dict, ...]:
 
 def _bigrams(value: str) -> Iterable[str]:
     return map("".join, zip(value, value[1:]))
+
+
+def _search_pattern(tokens: tuple[str, ...]) -> re.Pattern:
+    # Short ASCII tokens can be acronyms. Keep a whole phrase from bypassing their boundaries.
+    left = r"(?<![a-z0-9])" if _SHORT_SEARCH_WORD.fullmatch(tokens[0]) else ""
+    right = r"(?![a-z0-9])" if _SHORT_SEARCH_WORD.fullmatch(tokens[-1]) else ""
+    return re.compile(left + re.escape(" ".join(tokens)) + right)
 
 
 def _is_featured(record: Mapping) -> bool:
@@ -172,24 +180,20 @@ class _IndexedTerm:
     meaning: str
     case_context: tuple[str, ...]
 
-    def rank(self, query: str, tokens: tuple[str, ...]) -> int | None:
+    def rank(self, query: str, phrase: re.Pattern, tokens: tuple[re.Pattern, ...]) -> int | None:
         if query in self.expressions:
             return 0
-        if any(value.startswith(query) for value in self.expressions):
+        if any(phrase.match(value) for value in self.expressions):
             return 1
-        if any(query in value for value in self.expressions):
+        if any(phrase.search(value) for value in self.expressions):
             return 2
-        if len(tokens) == 1:
-            if query in self.meaning:
-                return 4
-            return 5 if any(query in value for value in self.case_context) else None
-        if all(any(token in value for value in self.expressions) for token in tokens):
+        missing = [token for token in tokens if not any(token.search(value) for value in self.expressions)]
+        if not missing:
             return 3
-        primary_fields = (*self.expressions, self.meaning)
-        if all(any(token in value for value in primary_fields) for token in tokens):
+        remaining = [token for token in missing if not token.search(self.meaning)]
+        if not remaining:
             return 4
-        fields = (*primary_fields, *self.case_context)
-        if all(any(token in value for value in fields) for token in tokens):
+        if all(any(token.search(value) for value in self.case_context) for token in remaining):
             return 5
         return None
 
@@ -262,9 +266,11 @@ class SearchEngine:
         if category:
             postings.append(self._categories.get(category, set()))
         candidates = set.intersection(*sorted(postings, key=len))
+        phrase = _search_pattern(tokens)
+        token_patterns = tuple(_search_pattern((token,)) for token in tokens) if len(tokens) > 1 else (phrase,)
         ranked = []
         for index in candidates:
-            rank = self._index[index].rank(normalized, tokens)
+            rank = self._index[index].rank(normalized, phrase, token_patterns)
             if rank is not None:
                 ranked.append((rank, index))
         return [index for _, index in sorted(ranked)]

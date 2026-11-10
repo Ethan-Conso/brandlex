@@ -3,6 +3,9 @@
   'use strict';
 
   const { countDraft } = typeof module === 'undefined' ? root.BrandLexHelpers : require('./helpers.js');
+  const { verifyFactualFidelity, FACTUAL_MISMATCH } = typeof module === 'undefined'
+    ? root.BrandLexRewriteFidelity : require('./rewrite_fidelity.js');
+  const FACTUAL_MISMATCH_NOTICE = '在线改写的价格、日期或数量与原稿不符，已显示本地预览。';
   const EMPTY = Object.freeze([]);
   const EMPTY_DICTIONARIES = Object.freeze({});
   // Keep the Flask prompt in sync; tests check exact prompt parity.
@@ -467,7 +470,7 @@
       && Array.isArray(result.adaptations) && result.adaptations.length <= 150;
   }
 
-  function normalizeResult(result, matched, constraints, region, dictionaries) {
+  function normalizeResult(source, result, matched, constraints, region, dictionaries) {
     if (!validResult(result)) throw new Error('Invalid DeepSeek rewrite');
     const aliases = matched.flatMap(({ term, expressions }) => {
       const adapted = canonical(term, region, dictionaries);
@@ -483,6 +486,7 @@
     if (region === 'en' && [primary_copy, alt_copy, ...cta_options].some(value => HAN.test(value.replace(URL, ' ')))) {
       throw new Error('Incomplete DeepSeek translation');
     }
+    verifyFactualFidelity(source, primary_copy, alt_copy, cta_options);
     return { primary_copy, alt_copy, cta_options, adaptations: result.adaptations };
   }
 
@@ -577,28 +581,31 @@
     const { matched, constraints } = retrieve(draft, region, terms, rules, dictionaries);
     let result;
     let source = 'local';
+    let errorCode = null;
     if (canCallModel) {
       try {
         const payload = modelPayload(draft, region, tone, matched, constraints);
         const remote = await requestModel(key, payload, signal);
         signal?.throwIfAborted();
-        result = normalizeResult(remote, matched, constraints, region, dictionaries);
+        result = normalizeResult(draft, remote, matched, constraints, region, dictionaries);
         source = 'live';
-      } catch {
+      } catch (error) {
         signal?.throwIfAborted();
+        if (error?.message === FACTUAL_MISMATCH) errorCode = 'factual_mismatch';
       }
     }
     result ||= localResult(draft, region, tone, constraints, dictionaries);
     return {
       ...result, engine: source === 'live' ? 'deepseek' : 'local', engine_source: source,
-      notice: result.notice || '', error_code: null, tone, target_market: region,
+      notice: [errorCode && FACTUAL_MISMATCH_NOTICE, result.notice].filter(Boolean).join(' '),
+      error_code: errorCode, tone, target_market: region,
       adaptations: verifiedAdaptations(draft, result, constraints, region, dictionaries),
       matched_glossary_terms: matched.map(({ term }) => term),
       counts: countDraft(result.primary_copy), source_counts: countDraft(draft),
     };
   }
 
-  const api = Object.freeze({ rewrite, matchTerms, convertScript, cacheResult });
+  const api = Object.freeze({ rewrite, matchTerms, convertScript, cacheResult, verifyFactualFidelity });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.BrandLexStaticRewrite = api;
 })(typeof window === 'undefined' ? globalThis : window);

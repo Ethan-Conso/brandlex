@@ -34,7 +34,7 @@ OPERATIONS = """
 {en} Run of Show|{hk}活動流程表|{cn}活动执行流程表|show flow for {en}|给{context_cn}现场团队列出时间点、人员和切换提示的流程。|流程表只有對外節目名稱，沒有執行人或接駁時間。|For {context_en}, the floor manager cues the welcome when all guests are seated.|{context_hk}待嘉賓坐定，由台務發出開場提示。|等{context_cn}嘉宾就座后，由现场负责人发出开场提示。|區分內部流程表與嘉賓節目單。
 {en} Photo Call|{hk}傳媒拍攝環節|{cn}媒体拍摄环节|press photo opportunity at {en}|{context_cn}预先安排供媒体拍摄人物或展示内容的时段。|將拍攝環節承諾成一對一專訪。|Photographers can attend the photo call after the opening remarks at {context_en}.|{context_hk}開場致辭後設傳媒拍攝環節。|{context_cn}开场致辞后安排媒体拍摄环节。|列出集合位置和拍攝時間，別混用採訪邀請。
 {en} Press Accreditation|{hk}傳媒採訪登記|{cn}媒体采访报名|press registration for {en}|媒体提交身份或采访需求，由{context_cn}主办方确认采访权限。|提交表格就寫成已獲採訪資格。|Media attending {context_en} should apply by Wednesday and wait for written confirmation.|傳媒採訪{context_hk}請於星期三前登記，並等候書面確認。|媒体采访{context_cn}请于周三前报名，资格以书面确认为准。|登記、資格確認和領取證件可分三步。
-{en} Event Recap|{hk}活動回顧|{cn}活动回顾|highlights from {en}|整理{context_cn}结束后的真实片段、参与者反馈和可公开成果。|將預估人數寫成已核實出席數。|Missed {context_en}? Catch up with the moments our guests shared.|錯過{context_hk}？一齊重溫嘉賓分享嘅精彩片段。|错过{context_cn}？来看看嘉宾分享的现场片段。|先核實人數、引述和照片授權。
+{recap_en} Event Recap|{recap_hk}活動回顧|{recap_cn}活动回顾|highlights from {en}|整理{context_cn}结束后的真实片段、参与者反馈和可公开成果。|將預估人數寫成已核實出席數。|Missed {context_en}? Catch up with the moments our guests shared.|錯過{context_hk}？一齊重溫嘉賓分享嘅精彩片段。|错过{context_cn}？来看看嘉宾分享的现场片段。|先核實人數、引述和照片授權。
 {en} Guest Thank-You Note|{hk}嘉賓致謝短箋|{cn}嘉宾感谢信|attendee follow-up for {en}|在{context_cn}后向来宾致谢，并补充已承诺的资料或下一步。|寄出批量感謝信卻未隱藏收件人地址。|Thank you for joining {context_en}. Here's the follow-up material we promised.|多謝出席{context_hk}，隨函附上早前答應提供嘅資料。|感谢参加{context_cn}，这里是现场承诺会发给大家的资料。|不把活動致謝當成未經同意的推廣訂閱。
 """
 

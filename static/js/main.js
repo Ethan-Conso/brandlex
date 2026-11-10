@@ -2,11 +2,10 @@
 (() => {
   'use strict';
   const { escapeHtml: esc, parseList, countDraft, appendCta, resultText, cleanCaseDraft } = window.BrandLexHelpers;
-  const { createCard, setLanguage: setCaseLanguage } = window.BrandLexCaseFeed;
+  const { createCard, setLanguage: setCaseLanguage, renderTermDetail } = window.BrandLexCaseFeed;
   const api = window.BrandLexAPI;
   const $ = selector => document.querySelector(selector);
   const $$ = selector => [...document.querySelectorAll(selector)];
-  const COPY = '<svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 7V3H3v9h4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   const HOME_DRAFT = 'LUMA 联名香氛礼盒上线，11月15至17日预订享早鸟福利 HK$280，香港包邮。';
   const HOME_PREVIEWS = Object.freeze({
     hk: Object.freeze({
@@ -30,6 +29,7 @@
     '文案与修辞': '修辞', '美妆与个护': '美妆', '时尚与奢品': '奢品', '数码与科技': '数码',
     '餐饮与酒水': '餐饮', '文旅与酒店': '文旅', '金融与支付': '金融', '合规与风控': '合规',
   });
+  const LOCAL_EDIT_NOTICE = '词条已保存在本浏览器';
   const formatCount = new Intl.NumberFormat('zh-CN').format;
   let state = {
     view: 'home', homeMarket: 'hk', terms: [], categories: [], samples: [], category: '',
@@ -467,18 +467,8 @@
   }
 
   function renderDrawer() {
-    const term = caseRecord(state.drawerId);
-    const content = $('#drawer-content');
-    content.setAttribute('aria-busy', String(!term && !state.drawerError));
-    if (!term) {
-      const status = state.drawerError
-        ? `<p class="drawer-status" role="alert">${esc(state.drawerError)}</p><button class="button button-secondary" data-open-term="${esc(state.drawerId)}">重试</button>`
-        : '<p class="drawer-status" role="status">正在加载完整释义与例句…</p>';
-      content.innerHTML = `<div class="drawer-body"><h2 id="drawer-title">词条详情</h2>${status}</div>`;
-      return;
-    }
-    const language = state.drawerLanguage;
-    content.innerHTML = `<div class="drawer-body"><p class="drawer-category">${esc(term.category)}</p><h2 id="drawer-title">${esc(term.term_en)}</h2><div class="drawer-expressions">${[['en', 'EN'], ['hk', 'HK'], ['cn', 'CN']].map(([key, label]) => `<button class="drawer-expression" data-copy="${esc(term[`term_${key}`])}" aria-label="复制 ${label}：${esc(term[`term_${key}`])}"><small>${label}</small><span lang="${{ en: 'en', hk: 'zh-HK', cn: 'zh-CN' }[key]}">${esc(term[`term_${key}`])}</span>${COPY}</button>`).join('')}</div><section class="drawer-section"><h3>简明释义</h3><p>${esc(term.meaning)}</p><div class="drawer-platforms">${term.platforms.map(platform => `<span class="platform-tag">${esc(platform)}</span>`).join('')}</div></section><section class="drawer-section drawer-bad"><h3>避免写法</h3><p>${esc(term.bad_example)}</p></section><section class="drawer-section"><div class="example-heading"><h3>地道例句</h3><div class="example-tabs" role="group" aria-label="例句语言">${['en', 'hk', 'cn'].map(key => `<button class="example-tab ${language === key ? 'is-active' : ''}" data-language="${key}" aria-pressed="${language === key}">${key.toUpperCase()}</button>`).join('')}</div></div><button class="drawer-good" data-copy="${esc(term[`good_example_${language}`])}" aria-label="复制当前例句"><span>${esc(term[`good_example_${language}`])}</span>${COPY}</button></section><section class="drawer-section drawer-tip"><h3>跨区贴士</h3><p>${esc(term.usage_tip)}</p></section>${state.isAdmin ? `<div class="drawer-footer"><button class="button button-secondary" data-edit="${term.id}">编辑词条</button><button class="button button-danger" data-delete="${term.id}">删除词条</button></div>` : ''}</div>`;
+    const { drawerId: id, drawerError: error, drawerLanguage: language, isAdmin } = state;
+    renderTermDetail($('#drawer-content'), { term: caseRecord(id), id, error, language, isAdmin });
   }
 
   async function readTermDetail(id) {
@@ -582,7 +572,7 @@
       closeDialog('term-dialog', true);
       await refreshLibrary();
       invalidateResult();
-      toast(id ? '词条已更新' : '词条已新增');
+      toast(api.isStatic() ? LOCAL_EDIT_NOTICE : id ? '词条已更新' : '词条已新增');
       if (state.view === 'library') $('#library-search').focus();
     } catch (error) { errorMessage($('#term-dialog').open ? '#term-error' : '#app-error', error.message); }
     finally { busyDialog = null; $('#save-term').disabled = false; }
@@ -615,7 +605,8 @@
       if (action.type !== 'logout') {
         await refreshLibrary();
         invalidateResult();
-        toast(action.type === 'reset' ? '已恢复默认词库' : '词条已删除');
+        const deletionNotice = api.isStatic() ? LOCAL_EDIT_NOTICE : '词条已删除';
+        toast(action.type === 'reset' ? '已恢复默认词库' : deletionNotice);
       }
       if (state.view === 'library') $('#library-search').focus();
     } catch (error) { errorMessage($('#confirm-dialog').open ? '#confirm-error' : '#app-error', error.message); }
@@ -634,7 +625,7 @@
       $('#admin-password').value = '';
       closeDialog('admin-dialog', true);
       renderAdmin();
-      toast('维护模式已解锁');
+      toast(api.isStatic() ? '维护模式已解锁（当前演示修改保存在本浏览器）' : '维护模式已解锁');
     } catch (error) { errorMessage('#admin-error', error.message); }
     finally { busyDialog = null; $('#admin-submit').disabled = false; }
   }
