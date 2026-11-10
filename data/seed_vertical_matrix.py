@@ -1,8 +1,8 @@
 """Render explicitly selected attribute and product combinations.
 
-Each family supplies edited expressions and claim guidance, plus examples
-written for its specific product forms. A row opts in to named forms so the
-catalogue never invents an attribute/product pairing to fill a quota.
+Each family supplies edited expressions, bilingual definitions and claim guidance,
+plus examples written for its specific product forms. A row opts in to named
+forms so the catalogue never invents an attribute/product pairing to fill a quota.
 """
 
 import re
@@ -46,28 +46,31 @@ def _record(category, platforms, en, hk, cn, aliases, meaning, bad, examples, ti
 
 
 def editorial_terms(category, platforms, source):
-    for en, hk, cn, aliases, meaning, bad, ex_en, ex_hk, ex_cn, tip in _rows(source):
+    for en, hk, cn, aliases, meaning, bad, ex_en, ex_hk, ex_cn, tip, definition in _rows(source):
         yield _record(category, platforms, en, hk, cn, aliases.split(";"),
-                      meaning, bad, (ex_en, ex_hk, ex_cn), tip)
+                      f"{meaning} EN: {definition}", bad, (ex_en, ex_hk, ex_cn), tip)
 
 
 def matrix_terms(category, platforms, attributes, forms):
     variants = {key: values for key, *values in _rows(forms)}
-    for en, hk, cn, alternate, meaning, bad, tip, available in _rows(attributes):
+    for en, hk, cn, alternate, meaning, bad, tip, available, definition in _rows(attributes):
+        attribute = (en, hk, cn, alternate, meaning, bad, tip, definition)
         for key in available.split():
-            yield _combination(category, platforms, (en, hk, cn, alternate, meaning, bad, tip),
-                               variants[key])
+            yield _combination(category, platforms, attribute, variants[key])
 
 
 def _combination(category, platforms, attribute, form):
-    en, hk, cn, alternate, meaning, bad, tip = attribute
-    name_en, name_hk, name_cn, context, ex_en, ex_hk, ex_cn, product_tip = form
+    en, hk, cn, alternate, meaning, bad, tip, definition = attribute
+    name_en, name_hk, name_cn, context, ex_en, ex_hk, ex_cn, product_tip, product = form
     term_en = name_en.format(en)
     term_hk = _LATIN_CJK.sub(" ", name_hk.format(hk))
     term_cn = _LATIN_CJK.sub(" ", name_cn.format(cn))
     alias = _REPEATED_WORD.sub(r"\1", name_en.format(alternate).replace("-", " "))
+    explanation = definition.format(product=product)
+    explanation = explanation[:1].upper() + explanation[1:]
     return _record(category, platforms, term_en, term_hk, term_cn, [alias],
-                   f"「{term_cn}」常见于{context}的介绍。{meaning}", bad.format(term_cn),
+                   f"「{term_cn}」常见于{context}的介绍。{meaning} EN: {explanation}",
+                   bad.format(term_cn),
                    (ex_en.format(_in_sentence(term_en)),
                     _LATIN_CJK.sub(" ", ex_hk.format(term_hk)),
                     _LATIN_CJK.sub(" ", ex_cn.format(term_cn))),

@@ -4,6 +4,7 @@ from copy import deepcopy
 import io
 import json
 import os
+from pathlib import Path
 import socket
 import ssl
 import unittest
@@ -176,6 +177,17 @@ class RewriterTests(unittest.TestCase):
                 result = rewrite_copy(source, "en", glossary=[])
             self.assertEqual(result["engine"], "deepseek")
             self.assertEqual(result["primary_copy"], primary)
+
+    def test_marketing_conditions_are_preserved_in_model_output(self):
+        cases = json.loads(Path(__file__).with_name("rewrite_marketing_facts.json").read_text(encoding="utf-8"))
+        for case in cases:
+            cta = case.get("cta", "查看詳情。" if case["market"] == "hk" else "View details.")
+            content = {"primary_copy": case["primary"], "alt_copy": case["alt"], "cta_options": [cta, cta],
+                       "adaptations": []}
+            with self.subTest(case=case["name"]), patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \
+                    patch("core.ai_rewriter.urlopen", return_value=response(content)):
+                result = rewrite_copy(case["source"], case["market"], glossary=[])
+                self.assertEqual(result["error_code"], None if case["valid"] else "factual_mismatch")
 
     def test_labeled_prices_and_relative_dates_keep_their_roles(self):
         source = "礼盒售价：280，30日发售。"
@@ -550,7 +562,7 @@ class RewriterTests(unittest.TestCase):
     def test_live_english_prose_may_preserve_han_in_url_but_not_in_sentences(self):
         url = "https://example.com/活動"
         ctas = [f"Learn more at {url}", "Explore this weekend's event."]
-        content = {"primary_copy": f"Join our weekend reading circle. {url}", "alt_copy": "Make time for the book club.",
+        content = {"primary_copy": f"Join our weekend reading circle. {url}", "alt_copy": f"Make time for the book club. {url}",
                    "adaptations": [], "cta_options": ctas}
         source = f"周末有读书会。查看详情 {url}"
         with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test"}), \

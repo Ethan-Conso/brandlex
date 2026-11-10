@@ -381,6 +381,9 @@
         + "awards, firsthand use, scarcity or guarantees. Preserve factual meaning, names, currencies, URLs, "
         + "dates, quantities, audience, geography and qualifications in both versions. Preserve exact offer "
         + "eligibility: 满299 means at least 299, and 買滿即送 requires a minimum spend even if no amount is given. "
+        + "Keep each price with its product and every count with its unit, including stock and first-guest limits. "
+        + "Repeat every URL verbatim in both versions. Keep member-only terms and distinguish shipping coverage "
+        + "from restrictions on who can order. "
         + "Never infer a product feature or in-store, online, link, pre-order or stock availability. Carry over "
         + "any explicit action, including account follows, in both versions. If no channel or action is given, "
         + "use a neutral invitation that requires none.",

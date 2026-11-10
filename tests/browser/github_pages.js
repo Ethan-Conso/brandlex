@@ -64,7 +64,7 @@ async (page) => {
   await page.waitForFunction(() => document.querySelectorAll('[data-sample]').length === 4);
   assert(await $('#view-home').isVisible(), 'Homepage opens by default');
   const { data: bootstrap } = await api('/api/bootstrap');
-  assert(bootstrap.total === 3207 && bootstrap.categories.length === 12 && !bootstrap.is_admin,
+  assert(bootstrap.total === 3208 && bootstrap.categories.length === 12 && !bootstrap.is_admin,
     'Complete seed and public startup');
   const publicStatus = await page.evaluate(async token => {
     try {
@@ -130,7 +130,8 @@ async (page) => {
   assert(await $('#drawer-title').innerText() === 'Product Seeding', 'NFKC lookup and complete drawer');
   const definitions = $('#term-drawer .drawer-definitions p');
   assert(await definitions.count() === 2 && await definitions.first().getAttribute('lang') === 'zh-CN'
-    && await definitions.last().getAttribute('lang') === 'en', 'Both definitions are visible, Chinese first for HK');
+    && await definitions.last().getAttribute('lang') === 'en'
+    && (await definitions.last().innerText()).startsWith('EN: '), 'Both definitions are visible, Chinese first for HK');
   await $('#term-drawer [data-language="en"]').click();
   assert(await definitions.first().getAttribute('lang') === 'en'
     && await definitions.last().getAttribute('lang') === 'zh-CN', 'English selection shows the English definition first');

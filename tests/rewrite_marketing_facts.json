@@ -1,0 +1,276 @@
+[
+  {
+    "name": "URLs remain verbatim across punctuation and localization",
+    "source": "限量 50 套。请访问 https://example.com/Reserve?ref=20&lang=zh 或 http://example.org/條款#VIP。",
+    "primary": "Only 50 sets are available. Visit (https://example.com/Reserve?ref=20&lang=zh) and http://example.org/條款#VIP.",
+    "alt": "Limited to 50 sets. Visit https://example.com/Reserve?ref=20&lang=zh and http://example.org/條款#VIP!",
+    "cta": "Reserve at https://example.com/Reserve?ref=20&lang=zh.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "a changed URL path is rejected",
+    "source": "了解详情：https://example.com/Reserve?ref=20。",
+    "primary": "See the details at https://example.com/Reserve?ref=20.",
+    "alt": "See the details at https://example.com/reserve?ref=20.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "missing URL in alternate",
+    "source": "了解详情：https://example.com/offer。",
+    "primary": "See the details at https://example.com/offer.",
+    "alt": "Explore the offer.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "invented URL in CTA",
+    "source": "了解详情：https://example.com/offer。",
+    "primary": "See the details at https://example.com/offer.",
+    "alt": "Explore the offer at https://example.com/offer.",
+    "cta": "Book now at https://example.com/checkout.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "a missing limited quantity is rejected",
+    "source": "礼盒限量 50 套。",
+    "primary": "禮盒限量 50 套。",
+    "alt": "禮盒現已登場。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "a limited quantity cannot become an ordinary count",
+    "source": "礼盒限量 50 套。",
+    "primary": "Only 50 gift sets are available.",
+    "alt": "There are 50 sets on display.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "first visitors qualifier is required",
+    "source": "首 100 名到店客人可獲禮品。",
+    "primary": "A gift for the first 100 visitors.",
+    "alt": "A gift for 100 visitors.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "count, container, and size may be translated",
+    "source": "内含 2 瓶，每瓶 100ml，盒长 20 厘米。",
+    "primary": "The box is 20 cm long and includes two bottles, each 100 milliliters.",
+    "alt": "Inside the 20-centimetre box are 2 bottles of 100 ml each.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "a container swap is rejected",
+    "source": "礼盒含 2 瓶。",
+    "primary": "禮盒附有 2 瓶。",
+    "alt": "禮盒附有 2 盒。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "prices may be reordered with their named products",
+    "source": "Serum HK$280，Cream HK$380。",
+    "primary": "Find our cream at HK$380 and our serum at HK$280.",
+    "alt": "Cream: HK$380. Serum: HK$280.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "prices cannot be swapped between two named products",
+    "source": "Serum HK$280，Cream HK$380。",
+    "primary": "Serum costs HK$280 and cream costs HK$380.",
+    "alt": "Serum costs HK$380 and cream costs HK$280.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "keeping price order cannot disguise a swap between known products",
+    "source": "Serum HK$280，Cream HK$380。",
+    "primary": "Serum costs HK$280 and cream costs HK$380.",
+    "alt": "Cream costs HK$280 and serum costs HK$380.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "price order is preserved when translated product anchors do not match",
+    "source": "香薰蜡烛售 HK$280，手工托盘售 HK$380。",
+    "primary": "The scented candle costs HK$280; the handmade tray costs HK$380.",
+    "alt": "Discover our candle for HK$280 and our handcrafted tray for HK$380.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "translated multi-item price swap fails the order check",
+    "source": "香薰蜡烛售 HK$280，手工托盘售 HK$380。",
+    "primary": "The scented candle costs HK$280; the handmade tray costs HK$380.",
+    "alt": "Discover our candle for HK$380 and our handcrafted tray for HK$280.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "member discount may be translated without repeating it in the CTA",
+    "source": "会员专享85折。",
+    "primary": "Members save 15%.",
+    "alt": "Take 15% off with your membership.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "member qualification is required in both drafts",
+    "source": "会员专享85折。",
+    "primary": "Members save 15%.",
+    "alt": "Everyone saves 15%.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "product lineup membership is ordinary prose",
+    "source": "这件新品是春季系列的一员。",
+    "primary": "Discover the latest member of our spring collection.",
+    "alt": "Explore the latest addition to our spring collection.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "shipping scope does not restrict order eligibility",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "香氛禮盒，香港免運費。",
+    "alt": "香港免運費，訂單僅限香港地區。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "free shipping may be phrased in natural English",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "Shop the fragrance set with free shipping in Hong Kong.",
+    "alt": "Shipping within Hong Kong is on us.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "shipping scope cannot be omitted",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "Shop the fragrance set with free shipping in Hong Kong.",
+    "alt": "Free shipping on the fragrance set.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "Hong Kong only may describe shipping instead of orders",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "Free shipping on Hong Kong orders only.",
+    "alt": "Free shipping within Hong Kong only.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "invented Hong Kong-only order restriction is rejected in English",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "Free shipping for orders within Hong Kong.",
+    "alt": "Free shipping for Hong Kong orders. Orders are restricted to Hong Kong only.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "apostrophes inside URL paths are preserved",
+    "source": "Book at https://example.test/o'reilly.",
+    "primary": "Book at https://example.test/o'reilly.",
+    "alt": "Book at https://example.test/o'really.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "an explicitly delimited URL preserves its trailing punctuation",
+    "source": "Book at <https://example.test/Offer!>.",
+    "primary": "Book at <https://example.test/Offer!>.",
+    "alt": "Book at <https://example.test/Offer>.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "explicitly paired product names remain assigned to the right prices",
+    "source": "LUMA HK$280, NOVA HK$350.",
+    "primary": "NOVA and LUMA are HK$350 and HK$280, respectively.",
+    "alt": "Choose LUMA or NOVA at HK$280 and HK$350, respectively.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "respectively cannot hide a price swap",
+    "source": "LUMA HK$280, NOVA HK$350.",
+    "primary": "LUMA costs HK$280. NOVA costs HK$350.",
+    "alt": "NOVA and LUMA are HK$280 and HK$350, respectively.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "non-members do not satisfy a member-only claim",
+    "source": "会员专享85折。",
+    "primary": "Members save 15%.",
+    "alt": "Non-members save 15%.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "a rewards or loyalty program qualifies as membership",
+    "source": "会员专享85折。",
+    "primary": "Members of our loyalty program save 15%.",
+    "alt": "Take 15% off with your membership.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "ordering may not be limited to customers in Hong Kong",
+    "source": "香氛礼盒香港包邮。",
+    "primary": "Free shipping in Hong Kong.",
+    "alt": "Free shipping in Hong Kong. Only customers in Hong Kong may place orders.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "a repeated product cannot acquire a conflicting price",
+    "source": "LUMA HK$280, NOVA HK$350.",
+    "primary": "LUMA costs HK$280. NOVA costs HK$350.",
+    "alt": "LUMA HK$280, NOVA HK$350. LUMA HK$350.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "generic membership updates do not qualify a discount",
+    "source": "会员专享85折。",
+    "primary": "Members save 15%.",
+    "alt": "Sign up for membership updates. Take 15% off today.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "the stock limit qualifier can follow a colon",
+    "source": "禮盒限量：50套。",
+    "primary": "禮盒僅50套。",
+    "alt": "禮盒有50套。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "an explicit one can be spelled out in translation",
+    "source": "禮盒內有1瓶。",
+    "primary": "The gift set includes one bottle.",
+    "alt": "The gift set includes 1 bottle.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "English token boundaries allow adjacent Han characters",
+    "source": "禮盒限量50套。",
+    "primary": "禮盒only 50 gift sets。",
+    "alt": "禮盒僅50套。",
+    "market": "hk",
+    "valid": true
+  }
+]

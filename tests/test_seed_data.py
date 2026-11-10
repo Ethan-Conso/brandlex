@@ -49,7 +49,7 @@ class SeedContentTests(unittest.TestCase):
         self.assertEqual(by_id[2669]["good_example_en"],
                          "See what's included in the residential meeting package and how to get there.")
 
-    def test_named_core_terms_have_bilingual_definitions_in_the_published_seed(self):
+    def test_all_published_terms_have_bilingual_definitions(self):
         from data.seed_library import build_default_library
 
         terms = build_default_library()
@@ -59,15 +59,39 @@ class SeedContentTests(unittest.TestCase):
             "Dewy Lip Tint", "Absolute Advertising Claim", "Joint Account Closure",
             "Residential Meeting Package", "Pop-up Store",
         }
-        bilingual = [term for term in terms if " EN: " in term["meaning"]]
-        self.assertTrue(set(range(1, 49)).issubset(term["id"] for term in bilingual))
-        expressions = {value for term in bilingual for value in (term["term_en"], *term["aliases"])}
+        self.assertEqual(len(terms), 3208)
+        expressions = {value for term in terms for value in (term["term_en"], *term["aliases"])}
         self.assertEqual(required - expressions, set())
-        for term in bilingual:
-            chinese, english = term["meaning"].split(" EN: ")
+        for term in terms:
             with self.subTest(term=term["term_en"]):
+                chinese, _, english = term["meaning"].partition(" EN: ")
                 self.assertRegex(chinese, r"[\u4e00-\u9fff].*。$")
                 self.assertRegex(english, r"^[A-Z].*\.$")
+                self.assertNotIn(" EN: ", english)
+
+    def test_growth_headwords_distinguish_ppc_model_from_cpc_cost(self):
+        from core.search_engine import SearchEngine
+        from data.seed_library import build_default_library
+
+        engine = SearchEngine(build_default_library())
+        ppc = engine.search("PPC")[0]
+        self.assertEqual(ppc["id"], 3208)
+        self.assertEqual(ppc["term_en"], "Pay-Per-Click (PPC)")
+        self.assertEqual(ppc["term_hk"], "按點擊付費廣告")
+        self.assertEqual(ppc["term_cn"], "按点击付费广告")
+        self.assertEqual(ppc["category"], "投放与增长")
+        self.assertEqual(ppc["aliases"], ["PPC", "Pay-Per-Click", "点击付费模式"])
+        self.assertEqual(engine.search("Pay-Per-Click")[0]["id"], 3208)
+        cpc = engine.search("CPC")[0]
+        self.assertEqual(cpc["id"], 51)
+        self.assertNotIn("pay per click", cpc["aliases"])
+        self.assertIn("advertising model", ppc["meaning"])
+        self.assertIn("average", cpc["meaning"])
+        for query, identifier in (("Conversion Rate (CVR)", 54), ("Landing Page", 55)):
+            with self.subTest(query=query):
+                term = engine.search(query)[0]
+                self.assertEqual(term["id"], identifier)
+                self.assertIn(" EN: ", term["meaning"])
 
     def test_exactly_one_hundred_terms_twenty_per_category(self):
         terms = build_seed_terms()

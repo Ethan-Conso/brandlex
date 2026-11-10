@@ -151,8 +151,12 @@ async function browser(endpoint = '', key = '', edits) {
   const relocated = (await updated.engine.request('/api/terms?q=Saved+Draft+Overlay')).data.terms[0];
   assert.equal(relocated.term_en, localName);
   assert(relocated.id > 3208);
-  assert.equal((await updated.engine.request('/api/terms/3208')).data.term_en, 'Another Saved Overlay');
+  assert.equal((await updated.engine.request('/api/terms/3208')).data.term_en, 'Pay-Per-Click (PPC)');
+  const another = (await updated.engine.request('/api/terms?q=Another+Saved+Overlay')).data.terms[0];
+  assert.equal(another.term_en, 'Another Saved Overlay');
+  assert(another.id > 3208 && another.id !== relocated.id);
 
-  const current = await browser('', '', { seedMaxId: 3207, records: { 3205: null } });
-  await assert.rejects(current.engine.request('/api/terms/3205'), { status: 404 });
+  const previous = await browser('', '', { seedMaxId: 3207, records: { 3205: null, 3208: null } });
+  await assert.rejects(previous.engine.request('/api/terms/3205'), { status: 404 });
+  assert.equal((await previous.engine.request('/api/terms/3208')).data.term_en, 'Pay-Per-Click (PPC)');
 })().catch(error => { process.stderr.write(`${error.stack}\n`); process.exitCode = 1; });

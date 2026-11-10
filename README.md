@@ -11,7 +11,7 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory docs
 
 Open `http://127.0.0.1:8000/`. The Pages workflow rebuilds and publishes `docs/` from `main`. The generated directory is ignored by Git.
 
-The static demo ships 3,207 terms and 45 cached DeepSeek results for the homepage and four sample drafts. When a public relay is configured, new drafts, edited samples, and `试改` cases can call `deepseek-flash` without a sign-in. 文案改写 also accepts an optional personal DeepSeek key. It stays in the current browser session and is sent directly to DeepSeek when a draft needs live rewriting. Without either connection, the browser offers a labeled local glossary preview.
+The static demo ships 3,208 terms with Chinese and English definitions and 45 cached DeepSeek results for the homepage and four sample drafts. When a public relay is configured, new drafts, edited samples, and `试改` cases can call `deepseek-flash` without a sign-in. 文案改写 also accepts an optional personal DeepSeek key. It stays in the current browser session and is sent directly to DeepSeek when a draft needs live rewriting. Without either connection, the browser offers a labeled local glossary preview.
 
 The public maintenance demo uses `brandlex2026`. Its SHA-256 check unlocks edits in that browser, and edits persist in local storage. Exports include those edits. Reset clears them and restores the shipped library.
 

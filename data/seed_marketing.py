@@ -6,6 +6,8 @@ localized examples and a common mistake. A recipe only applies to a group
 whose members support it.
 """
 
+import re
+
 from data import (
     seed_marketing_commerce,
     seed_marketing_copy,
@@ -25,11 +27,18 @@ def _rows(source, width):
         yield fields
 
 
+def _topic_name(name):
+    # Retain acronyms and the App Store name while lowercasing generic topics.
+    return re.sub(r"[A-Za-z]+", lambda word: word[0] if word[0].isupper() else word[0].lower(),
+                  name).replace("app store", "App Store")
+
+
 def matrix(category, topics, recipes):
     """Render a localized set of copy-ready term records from editorial rows."""
     for en, hk, cn, platform_tags, context_en, context_hk, context_cn, note in _rows(topics, 8):
         context = {
             "en": en,
+            "topic": _topic_name(en),
             "hk": hk,
             "cn": cn,
             "context_en": context_en,
@@ -39,14 +48,14 @@ def matrix(category, topics, recipes):
             "recap_hk": hk.removesuffix("活動"),
             "recap_cn": cn.removesuffix("活动"),
         }
-        for recipe in _rows(recipes, 10):
-            term_en, term_hk, term_cn, alias, meaning, bad, good_en, good_hk, good_cn, tip = (
+        for recipe in _rows(recipes, 11):
+            term_en, term_hk, term_cn, alias, meaning, english, bad, good_en, good_hk, good_cn, tip = (
                 field.format_map(context) for field in recipe
             )
             yield {
                 "term_en": term_en, "term_hk": term_hk, "term_cn": term_cn,
                 "aliases": [alias], "platforms": platform_tags.split(","),
-                "category": category, "meaning": meaning, "bad_example": bad,
+                "category": category, "meaning": f"{meaning} EN: {english}", "bad_example": bad,
                 "good_example_en": good_en, "good_example_hk": good_hk,
                 "good_example_cn": good_cn, "usage_tip": f"{tip}{note}",
             }

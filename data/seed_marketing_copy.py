@@ -19,14 +19,14 @@ Win-Back Email|舊客再訪邀請電郵|老客召回邮件|Email,Shopify|See wha
 """
 
 EMAIL_PARTS = """
-{en} Subject Line|{hk}主旨|{cn}主题行|subject for {en}|收件人在邮箱列表看到的{cn}标题，宜直接说清事项。|「重要通知，速看！」沒有指出是哪件事。|Next step: {context_en}|下一步：{context_hk}|下一步：{context_cn}|香港電郵介面多寫「主旨」，內地團隊常寫「主题行」。
-{en} Preheader|{hk}預覽文字|{cn}预览摘要|preview text for {en}|邮箱收件列表在{cn}主题行附近显示的补充短句。|預覽文字只重複主旨，沒有新資訊。|You can do this from your account: {context_en}.|登入帳戶即可處理：{context_hk}。|登录账号即可操作：{context_cn}。|用一個新資訊點補足主旨，預覽時檢查截斷位置。
-{en} Opening Line|{hk}開首句|{cn}开场句|opening sentence for {en}|在{cn}首段交代写信目的或读者可采取的下一步。|「謹藉此通知閣下查閱如下內容。」冗長卻沒說目的。|Here's what you can do next: {context_en}.|以下係你而家可以做嘅一步：{context_hk}。|接下来你可以直接操作：{context_cn}。|先交代關鍵事項，再寫禮貌問候。
-{en} Button Label|{hk}按鈕文字|{cn}按钮文案|button text for {en}|{cn}行动按钮上简短、能预测下一步的文字。|全部按鈕只寫「按這裡」，無法預判會打開甚麼。|{context_en}|{context_hk}|{context_cn}|按鈕用動詞開頭，不應暗示按下已完成交易。
-{en} Text Link|{hk}文字連結|{cn}文字链接|inline link for {en}|{cn}正文里可以点开的文字，适合为主要按钮提供替代入口。|用裸網址當連結標題，讀屏器只會逐字讀出。|Can't see the button? Use the link marked “{context_en}”.|睇唔到按鈕？請使用「{context_hk}」文字連結。|看不到按钮？请使用“{context_cn}”文字链接。|動作相同時，文字連結和按鈕用一致字眼。
-{en} Help Line|{hk}支援提示句|{cn}客服提示语|support line for {en}|{cn}末段告知读者遇到困难时如何寻求帮助。|寫「請直接回覆」，寄件信箱卻不收回覆。|Need help with “{context_en}”? Reply to this email and we'll take a look.|「{context_hk}」時遇到問題？回覆呢封電郵，我哋會跟進。|操作“{context_cn}”时遇到问题？回复这封邮件，我们会帮你查看。|只有有人處理回覆時才可承諾回信支援。
-{en} Image Alt Text|{hk}圖片替代文字|{cn}图片替代文本|image description for {en}|为{cn}功能性图片写出能替代图片传达用途的短文字。|按鈕圖片的替代文字只寫「藍色圖案」。|Button image: {context_en}|按鈕圖片：{context_hk}|按钮图片：{context_cn}|功能圖片應寫用途，純裝飾圖片宜留空。
-{en} Plain-Text Version|{hk}純文字版本|{cn}纯文本版本|plain text for {en}|{cn}在不支持图文显示时仍可阅读、含必要指引的版本。|純文字版本只叫讀者「按上圖」，沒有替代操作。|To continue, sign in to your account and select “{context_en}”.|請登入帳戶，再選「{context_hk}」繼續。|请登录账号，再选择“{context_cn}”继续。|不要把重要條件留在僅有的圖片內。
+{en} Subject Line|{hk}主旨|{cn}主题行|subject for {en}|收件人在邮箱列表看到的{cn}标题，宜直接说清事项。|The title of the {topic} shown in the inbox, ideally identifying the purpose of the message.|「重要通知，速看！」沒有指出是哪件事。|Next step: {context_en}|下一步：{context_hk}|下一步：{context_cn}|香港電郵介面多寫「主旨」，內地團隊常寫「主题行」。
+{en} Preheader|{hk}預覽文字|{cn}预览摘要|preview text for {en}|邮箱收件列表在{cn}主题行附近显示的补充短句。|A short preview of the {topic} that appears near its subject in the inbox.|預覽文字只重複主旨，沒有新資訊。|You can do this from your account: {context_en}.|登入帳戶即可處理：{context_hk}。|登录账号即可操作：{context_cn}。|用一個新資訊點補足主旨，預覽時檢查截斷位置。
+{en} Opening Line|{hk}開首句|{cn}开场句|opening sentence for {en}|在{cn}首段交代写信目的或读者可采取的下一步。|The first sentence of the {topic}, explaining why the message was sent or what the reader can do.|「謹藉此通知閣下查閱如下內容。」冗長卻沒說目的。|Here's what you can do next: {context_en}.|以下係你而家可以做嘅一步：{context_hk}。|接下来你可以直接操作：{context_cn}。|先交代關鍵事項，再寫禮貌問候。
+{en} Button Label|{hk}按鈕文字|{cn}按钮文案|button text for {en}|{cn}行动按钮上简短、能预测下一步的文字。|Short text on a button in the {topic} that tells the reader what will happen when they click.|全部按鈕只寫「按這裡」，無法預判會打開甚麼。|{context_en}|{context_hk}|{context_cn}|按鈕用動詞開頭，不應暗示按下已完成交易。
+{en} Text Link|{hk}文字連結|{cn}文字链接|inline link for {en}|{cn}正文里可以点开的文字，适合为主要按钮提供替代入口。|Clickable words in the {topic}, often used as an alternative to the main button.|用裸網址當連結標題，讀屏器只會逐字讀出。|Can't see the button? Use the link marked “{context_en}”.|睇唔到按鈕？請使用「{context_hk}」文字連結。|看不到按钮？请使用“{context_cn}”文字链接。|動作相同時，文字連結和按鈕用一致字眼。
+{en} Help Line|{hk}支援提示句|{cn}客服提示语|support line for {en}|{cn}末段告知读者遇到困难时如何寻求帮助。|A sentence near the end of the {topic} telling the reader how to get support.|寫「請直接回覆」，寄件信箱卻不收回覆。|Need help with “{context_en}”? Reply to this email and we'll take a look.|「{context_hk}」時遇到問題？回覆呢封電郵，我哋會跟進。|操作“{context_cn}”时遇到问题？回复这封邮件，我们会帮你查看。|只有有人處理回覆時才可承諾回信支援。
+{en} Image Alt Text|{hk}圖片替代文字|{cn}图片替代文本|image description for {en}|为{cn}功能性图片写出能替代图片传达用途的短文字。|A short description that conveys the function of an image in the {topic} when the image cannot be seen.|按鈕圖片的替代文字只寫「藍色圖案」。|Button image: {context_en}|按鈕圖片：{context_hk}|按钮图片：{context_cn}|功能圖片應寫用途，純裝飾圖片宜留空。
+{en} Plain-Text Version|{hk}純文字版本|{cn}纯文本版本|plain text for {en}|{cn}在不支持图文显示时仍可阅读、含必要指引的版本。|A version of the {topic} that remains readable and actionable without formatted text or images.|純文字版本只叫讀者「按上圖」，沒有替代操作。|To continue, sign in to your account and select “{context_en}”.|請登入帳戶，再選「{context_hk}」繼續。|请登录账号，再选择“{context_cn}”继续。|不要把重要條件留在僅有的圖片內。
 """
 
 PAGES = """
@@ -47,15 +47,15 @@ Store Locator Page|門市搜尋頁|门店查询页|官网,微信|a shop with ref
 """
 
 PAGE_PARTS = """
-{en} Hero Headline|{hk}首屏主標題|{cn}首屏主标题|main headline for {en}|在{cn}顶部用短标题说清受众会看到什么。|只寫「開啟精彩無限」，看不出頁面是做甚麼。|Discover {context_en}|探索{context_hk}|了解{context_cn}|不要讓品牌口號掩蓋頁面主題。
-{en} Supporting Line|{hk}輔助標題|{cn}辅助标题|subheading for {en}|跟在{cn}主标题后，补充一个具体事实或行动指引。|副標原樣再寫一次主標。|See what's included in {context_en} before you decide.|先睇清楚{context_hk}包含嘅內容，再作決定。|先看清{context_cn}包含什么，再做决定。|補充能影響決定的資料，不必再堆形容詞。
-{en} Eyebrow Copy|{hk}眉題|{cn}眉题文案|eyebrow label for {en}|{cn}主标题上方的小字，帮助读者识别内容类别。|眉題寫一整段背景，搶去主標焦點。|In focus: {context_en}|焦點：{context_hk}|焦点：{context_cn}|香港設計簡報亦會寫「小標」，要與副標區分。
-{en} Primary Button Copy|{hk}主要按鈕文字|{cn}主按钮文案|primary button text for {en}|{cn}最重要的行动按钮文案，直接反映点击结果。|按鈕寫「立即購買」，實際只會打開詳情。|View details|查看詳情|查看详情|連往詳情、開始預約和完成付款應用不同動詞。
-{en} Evidence Line|{hk}實證短句|{cn}证据短句|proof point for {en}|在{cn}卖点附近补上能查证的事实、出处或更新日期。|只寫「業界第一」，沒有來源或比較範圍。|Details about {context_en} were checked by our team this week.|{context_hk}的資料已由團隊於本週核對。|{context_cn}的资料已由团队在本周核对。|發布時替換成實際核對日期或可查證資料。
-{en} Eligibility Note|{hk}適用條件註釋|{cn}适用条件说明|eligibility wording for {en}|在{cn}主要行动附近列清读者要满足的条件。|條件只藏在頁尾，主文卻暗示人人適用。|Check whether {context_en} is available in your area.|先查看你所在地區是否提供{context_hk}。|先确认你所在地区是否提供{context_cn}。|重要門檻需靠近承諾，不要只靠星號。
-{en} Image Alt Description|{hk}圖片替代描述|{cn}图片替代描述|accessible image copy for {en}|描述{cn}图片中对理解内容有帮助的可见信息。|替代文字塞關鍵字，沒有描述實際畫面。|A close-up showing {context_en} on display.|{context_hk}的展示近鏡。|展示{context_cn}的近景。|依實際畫面改寫，勿虛構顏色、位置或人物。
-{en} Frequently Asked Questions|{hk}常見問題|{cn}常见问题|FAQ for {en}|以读者会使用的问法回答{cn}购买、预约或使用前的疑问。|以口號回答問題，沒有給可執行資訊。|Is {context_en} available where I live? Check your postcode in the availability section.|我所在嘅地區有冇{context_hk}？可喺供應地區一欄查閱。|我所在地区有{context_cn}吗？可在服务范围栏查看。|地區查詢方式按市場調整，香港不能照搬郵遞區號。
-{en} Accessibility Microcopy|{hk}無障礙介面短句|{cn}无障碍界面提示语|accessible microcopy for {en}|让使用读屏器或键盘操作的人清楚知道{cn}交互元素的用途。|多個不同內容的連結全部標「了解更多」。|Read the details for {context_en}.|查閱{context_hk}的詳情。|查看{context_cn}的详情。|連結脫離上下文朗讀時，仍須能識別用途。
+{en} Hero Headline|{hk}首屏主標題|{cn}首屏主标题|main headline for {en}|在{cn}顶部用短标题说清受众会看到什么。|The main title at the top of the {topic}, which tells visitors what the page offers.|只寫「開啟精彩無限」，看不出頁面是做甚麼。|Discover {context_en}|探索{context_hk}|了解{context_cn}|不要讓品牌口號掩蓋頁面主題。
+{en} Supporting Line|{hk}輔助標題|{cn}辅助标题|subheading for {en}|跟在{cn}主标题后，补充一个具体事实或行动指引。|A line after the main headline on the {topic} that adds a specific fact or direction.|副標原樣再寫一次主標。|See what's included in {context_en} before you decide.|先睇清楚{context_hk}包含嘅內容，再作決定。|先看清{context_cn}包含什么，再做决定。|補充能影響決定的資料，不必再堆形容詞。
+{en} Eyebrow Copy|{hk}眉題|{cn}眉题文案|eyebrow label for {en}|{cn}主标题上方的小字，帮助读者识别内容类别。|A short label above the headline on the {topic} that identifies the subject or category.|眉題寫一整段背景，搶去主標焦點。|In focus: {context_en}|焦點：{context_hk}|焦点：{context_cn}|香港設計簡報亦會寫「小標」，要與副標區分。
+{en} Primary Button Copy|{hk}主要按鈕文字|{cn}主按钮文案|primary button text for {en}|{cn}最重要的行动按钮文案，直接反映点击结果。|The wording on the main action button of the {topic}, describing the result of selecting it.|按鈕寫「立即購買」，實際只會打開詳情。|View details|查看詳情|查看详情|連往詳情、開始預約和完成付款應用不同動詞。
+{en} Evidence Line|{hk}實證短句|{cn}证据短句|proof point for {en}|在{cn}卖点附近补上能查证的事实、出处或更新日期。|A short, checkable fact, source or date placed near a claim on the {topic}.|只寫「業界第一」，沒有來源或比較範圍。|Details about {context_en} were checked by our team this week.|{context_hk}的資料已由團隊於本週核對。|{context_cn}的资料已由团队在本周核对。|發布時替換成實際核對日期或可查證資料。
+{en} Eligibility Note|{hk}適用條件註釋|{cn}适用条件说明|eligibility wording for {en}|在{cn}主要行动附近列清读者要满足的条件。|A statement near the main action on the {topic} explaining who qualifies or what conditions apply.|條件只藏在頁尾，主文卻暗示人人適用。|Check whether {context_en} is available in your area.|先查看你所在地區是否提供{context_hk}。|先确认你所在地区是否提供{context_cn}。|重要門檻需靠近承諾，不要只靠星號。
+{en} Image Alt Description|{hk}圖片替代描述|{cn}图片替代描述|accessible image copy for {en}|描述{cn}图片中对理解内容有帮助的可见信息。|Text describing the visible details of an image that matter to understanding the {topic}.|替代文字塞關鍵字，沒有描述實際畫面。|A close-up showing {context_en} on display.|{context_hk}的展示近鏡。|展示{context_cn}的近景。|依實際畫面改寫，勿虛構顏色、位置或人物。
+{en} Frequently Asked Questions|{hk}常見問題|{cn}常见问题|FAQ for {en}|以读者会使用的问法回答{cn}购买、预约或使用前的疑问。|Answers on the {topic} to questions people are likely to ask before buying, booking or using something.|以口號回答問題，沒有給可執行資訊。|Is {context_en} available where I live? Check your postcode in the availability section.|我所在嘅地區有冇{context_hk}？可喺供應地區一欄查閱。|我所在地区有{context_cn}吗？可在服务范围栏查看。|地區查詢方式按市場調整，香港不能照搬郵遞區號。
+{en} Accessibility Microcopy|{hk}無障礙介面短句|{cn}无障碍界面提示语|accessible microcopy for {en}|让使用读屏器或键盘操作的人清楚知道{cn}交互元素的用途。|Short labels or instructions on the {topic} that explain how interactive elements work to people using a keyboard or screen reader.|多個不同內容的連結全部標「了解更多」。|Read the details for {context_en}.|查閱{context_hk}的詳情。|查看{context_cn}的详情。|連結脫離上下文朗讀時，仍須能識別用途。
 """
 
 BLOCKS = ((EMAILS, EMAIL_PARTS), (PAGES, PAGE_PARTS))

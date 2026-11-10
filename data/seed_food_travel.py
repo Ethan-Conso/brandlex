@@ -21,7 +21,7 @@ class CopyContext:
 
 def _entries(category, source, context):
     for line in source.strip().splitlines():
-        en, hk, cn, alias, meaning = line.split("|")
+        en, hk, cn, alias, meaning_zh, meaning_en = line.split("|")
         names = {"en": en, "hk": hk, "cn": cn}
         defaults = (context.english, context.hong_kong, context.mainland, context.bad, context.tip)
         example_en, example_hk, example_cn, bad, tip = (
@@ -34,7 +34,7 @@ def _entries(category, source, context):
             "aliases": [alias],
             "category": category,
             "platforms": list(context.platforms),
-            "meaning": meaning,
+            "meaning": f"{meaning_zh} EN: {meaning_en}",
             "bad_example": bad,
             "good_example_en": example_en,
             "good_example_hk": example_hk,

@@ -56,7 +56,7 @@ class GitHubPagesBuildTests(unittest.TestCase):
     def test_all_seed_terms_and_samples_ship_without_runtime_files(self):
         seed = json.loads((self.project / "data" / "glossary_seed.json").read_text(encoding="utf-8"))
         output = json.loads((self.output / "data" / "glossary_seed.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(output), 3207)
+        self.assertEqual(len(output), 3208)
         self.assertEqual(len({record["category"] for record in output}), 12)
         self.assertEqual([{field: record[field] for field in seed[0]} for record in output], seed)
         self.assertEqual(
@@ -103,6 +103,8 @@ class GitHubPagesBuildTests(unittest.TestCase):
         engine = SearchEngine(json.loads((self.output / "data" / "glossary_seed.json").read_text(encoding="utf-8")))
         queries = [
             ("ROAS", "", 0), ("ＲＯＡＳ", "", 0), ("CTR", "", 0), ("ROAS date", "", 0),
+            ("PPC", "", 0), ("Pay-Per-Click", "", 0), ("CPC", "", 0),
+            ("Conversion Rate (CVR)", "", 0), ("Landing Page", "", 0),
             ("early–bird", "", 0), ("Product Seeding", "", 0), ("A/B Testing", "", 0),
             ("香港 包邮", "电商与转化", 0), ("防晒", "", 12), ("—", "", 0),
             ("免運費", "", 0), ("限时", "", 0), ("", "文旅与酒店", 36),

@@ -64,7 +64,7 @@
     const english = marker > 0 ? meaning.slice(marker + 5).trim() : '';
     if (!chinese || !english) return `<p>${esc(meaning)}</p>`;
     const chineseLine = `<p lang="zh-CN">${esc(chinese)}</p>`;
-    const englishLine = `<p lang="en">${esc(english)}</p>`;
+    const englishLine = `<p lang="en"><strong>EN:</strong> ${esc(english)}</p>`;
     return `<div class="drawer-definitions">${language === 'en' ? englishLine + chineseLine : chineseLine + englishLine}</div>`;
   }
 

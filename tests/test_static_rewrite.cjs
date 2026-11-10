@@ -4,6 +4,7 @@ const { resolve } = require('node:path');
 const test = require('node:test');
 const { rewrite, verifyFactualFidelity } = require('../static/js/static_rewrite.js');
 const bundledCache = require('../data/pages_rewrites.json');
+const marketingFacts = require('./rewrite_marketing_facts.json');
 
 const MARKETS = ['hk', 'cn', 'en'];
 const TONES = ['standard', 'social', 'concise'];
@@ -46,6 +47,46 @@ const FIDELITY_CASES = [
     cta: 'We open at 11 am.', expected: 'live' },
   { name: 'one day in ordinary prose is not a timed claim', region: 'en', draft: '用新的方式开启平凡的一天。',
     primary: 'Start your day a little differently.', alt: 'Try something fresh in your routine.', expected: 'live' },
+  { name: 'a booking URL is preserved verbatim including its path case', region: 'en',
+    draft: 'Book at https://example.test/Events?slot=12&code=VIP.',
+    primary: 'Book now at https://example.test/events?slot=12&code=VIP.',
+    alt: 'Book at https://example.test/Events?slot=12&code=VIP.', expected: 'local' },
+  { name: 'an alternate cannot omit a source URL', region: 'en', draft: 'Book at https://example.test/Book.',
+    primary: 'Book now at https://example.test/Book.', alt: 'Get your booking in today.', expected: 'local' },
+  { name: 'a call to action cannot invent a URL', region: 'en', draft: 'Book at https://example.test/Book.',
+    primary: 'Book now at https://example.test/Book.', alt: 'Reserve at https://example.test/Book.',
+    cta: 'Reserve at https://example.test/Offer.', expected: 'local' },
+  { name: 'the source URL may be followed by localized punctuation', region: 'en',
+    draft: '请到 https://example.test/Book?code=VIP 预订。',
+    primary: 'Book now at https://example.test/Book?code=VIP.',
+    alt: 'Reserve at https://example.test/Book?code=VIP.', expected: 'live' },
+  { name: 'a rewrite cannot drop a limited quantity', region: 'en', draft: '限量 50 套。',
+    primary: 'Available for a limited time.', alt: 'Only 50 sets are available.', expected: 'local' },
+  { name: 'a rewrite must keep scarcity bound to the quantity', region: 'en', draft: '礼盒限量 50 套。',
+    primary: 'Explore our 50 gift sets.', alt: 'Only 50 sets are available.', expected: 'local' },
+  { name: 'a rewrite cannot replace bottles with boxes', region: 'en', draft: '礼盒内含 2 瓶。',
+    primary: 'The gift set contains 2 bottles.', alt: 'Each gift set comes with 2 boxes.', expected: 'local' },
+  { name: 'localized quantities preserve compatible units', region: 'en',
+    draft: '限量 50 套，每套 2 瓶，每瓶 100ml，礼盒宽 20厘米。',
+    primary: 'Only 50 sets are available, with two bottles per set. Each bottle holds 100 mL and the box is 20 cm wide.',
+    alt: 'Limited to fifty sets. Each 20 cm gift box includes 2 bottles of 100 milliliters each.', expected: 'live' },
+  { name: 'the same two prices cannot be swapped between named items', region: 'en',
+    draft: 'LUMA is HK$280 and NOVA is HK$350.',
+    primary: 'Get LUMA for HK$350 and NOVA for HK$280.',
+    alt: 'Shop NOVA for HK$350 or LUMA for HK$280.', expected: 'local' },
+  { name: 'two named items and their prices can change order', region: 'en',
+    draft: 'LUMA 售价 HK$280，NOVA 售价 HK$350。',
+    primary: 'Shop NOVA for HK$350 or LUMA for HK$280.',
+    alt: 'Get LUMA for HK$280 and NOVA for HK$350.', expected: 'live' },
+  { name: 'the offer membership qualifier is required in both versions', region: 'en', draft: '会员专享 HK$280。',
+    primary: 'Members pay HK$280.', alt: 'Everyone can shop for HK$280.', expected: 'local' },
+  { name: 'membership copy can use VIP eligibility', region: 'en', draft: '会员专享 HK$280。',
+    primary: 'Pay HK$280 with your membership.', alt: 'Shop for HK$280 at the VIP rate.', expected: 'live' },
+  { name: 'shipping scope cannot become order eligibility', region: 'hk', draft: '禮盒售價 HK$280，香港免運費。',
+    primary: '禮盒售價 HK$280，香港免運費。', alt: '禮盒售價 HK$280，訂單僅限香港地區。', expected: 'local' },
+  { name: 'free shipping may be limited geographically', region: 'en', draft: '禮盒售價 HK$280，香港免運費。',
+    primary: 'Shop the gift set for HK$280 with free Hong Kong shipping.',
+    alt: 'Get the gift set for HK$280. Free shipping is available in Hong Kong only.', expected: 'live' },
 ];
 
 function deepSeekResponse(result) {
@@ -76,6 +117,14 @@ test('all 45 bundled rewrites pass the browser fact checker', () => {
     }
   }
   assert.equal(checked, 45);
+});
+
+test('the browser passes the shared Python and JavaScript marketing fact cases', () => {
+  for (const { name, source, primary, alt, cta, valid } of marketingFacts) {
+    const check = () => verifyFactualFidelity(source, primary, alt, cta ? [cta] : []);
+    if (valid) assert.doesNotThrow(check, name);
+    else assert.throws(check, /Factual mismatch in DeepSeek rewrite/, name);
+  }
 });
 
 test('direct personal-key requests use the same nine prompts as Flask', async t => {

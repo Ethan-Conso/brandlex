@@ -78,7 +78,7 @@ class LearningCopyTests(unittest.TestCase):
 
     def test_entire_corpus_is_valid_ordered_distinct_and_has_compact_takeaways(self):
         full = self.flagships + self.polished
-        self.assertEqual([term["id"] for term in full], list(range(1, 3208)))
+        self.assertEqual([term["id"] for term in full], list(range(1, 3209)))
         self.assertGreater(sum(raw["term_en"] != new["term_en"] for raw, new in zip(self.raw, self.polished)), 200)
         for field in ("term_en", "term_hk", "term_cn"):
             self.assertEqual(len({term[field].casefold() for term in full}), len(full))

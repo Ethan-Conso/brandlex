@@ -49,9 +49,59 @@ ENGLISH_DEFINITIONS = {
     "A/B Testing": "Showing two versions to comparable groups to measure which performs better against a chosen metric.",
     "Bounce Rate": "The share of visits classified as unengaged under the analytics tool's rules.",
     "Organic Reach": "The number of unique people who see content through unpaid distribution.",
+    "Cost per Click": "The average amount spent to generate one ad click, calculated by dividing ad spend by clicks.",
+    "Conversion Rate": "The percentage of a defined audience that completes a target action, such as a purchase or sign-up.",
+    "Landing Page": "A campaign destination page that follows through on the message in an ad or link and guides visitors to a specific action.",
+    "Pay-Per-Click (PPC)": "An advertising model in which the advertiser pays when someone clicks an ad. Cost per click (CPC) measures how much each click costs on average.",
     "KOL Engagement Rate": "Creator interactions divided by a stated measure of audience size, such as followers, reach or views.",
     "Pop-up Store": "A temporary shop that lets a brand sell, introduce products or meet customers for a limited time.",
     "Call-to-Action": "A prompt that tells the audience what to do next, such as booking, buying or signing up.",
+    "Retargeting": "Showing relevant ads to people who have already visited a site or interacted with a brand, subject to consent and frequency controls.",
+    "Cost per Thousand Impressions": "The average cost of delivering a thousand ad impressions, including repeated impressions to the same person.",
+    "Customer Acquisition Cost": "The cost of acquiring one new customer, based on a defined set of marketing and sales expenses.",
+    "Lookalike Audience": "A new ad audience modelled on the shared characteristics of an existing group, such as recent buyers.",
+    "Ad Frequency": "The average number of times a person in the audience sees an ad during a specified period.",
+    "Long-Tail Keyword": "A specific search phrase, often with several words, that expresses a more precise need or intent.",
+    "Customer Lifetime Value": "The estimated revenue or gross profit a customer will generate over a defined period of the relationship.",
+    "Attribution Window": "The period after an ad interaction in which a conversion can be credited to that ad.",
+    "Crossover Collaboration": "A project where distinct brands or creators combine their styles and audiences to launch a product or campaign together.",
+    "Brand Tonality": "The overall character a brand conveys through its language, visuals and customer experience.",
+    "Key Visual": "The central campaign image that establishes a consistent visual identity across channels and materials.",
+    "Limited Edition": "A version of a product released in a restricted quantity, often distinguished by its design, packaging or numbering.",
+    "Flagship Store": "A brand's representative retail location or official online storefront, designed to showcase its range and identity.",
+    "Immersive Experience": "A brand experience that draws visitors into a story through space, sound, scent or direct participation.",
+    "Brand Ambassador": "Someone who represents a brand and promotes it on an ongoing basis under an agreed role.",
+    "VIP Preview": "An invitation-only opportunity for selected guests to view a launch or try an experience before the public.",
+    "Sustainability": "Reducing the long-term environmental and resource impacts of a product or business while considering human well-being.",
+    "Brand Positioning": "The place a brand seeks to occupy in its audience's mind, defined by whom it serves, what it offers and why it stands out.",
+    "PR Gifting": "Sending products to journalists or creators for them to try without a promise of published coverage.",
+    "Press Kit": "A package of brand facts, news, images and contacts prepared to help journalists cover a story accurately.",
+    "Press Preview": "An advance briefing or experience that gives journalists information ahead of a public announcement.",
+    "Media Coverage": "Reporting about a brand, product or event by media outlets.",
+    "Event Sponsorship": "Providing funding, products or services to an event in exchange for agreed visibility, participation or access.",
+    "Experiential Marketing": "Marketing that builds familiarity with a brand by letting people try, explore or take part in an experience.",
+    "Brand Activation": "A campaign activity that brings a brand idea to life through direct audience participation or product trial.",
+    "Community Event": "A gathering organised around a shared interest or brand experience to help members connect with one another.",
+    "Brand Heritage": "The history, craftsmanship or values a brand has developed over time and draws on in its products today.",
+    "Hook Copy": "The opening words or visual cue designed to earn the audience's attention and keep them reading or watching.",
+    "Emotional Value": "The feelings a product or brand can provide beyond its functional benefits, such as comfort, joy or belonging.",
+    "Pain Point": "A specific difficulty or concern that customers encounter and that the product or service can address.",
+    "Social Proof": "Real reviews, customer counts or independent evidence that help potential buyers decide whether to trust an offer.",
+    "Tagline": "A brief, memorable line that expresses a central brand or campaign idea.",
+    "Fear of Missing Out": "Anxiety about losing a worthwhile opportunity, sometimes used in copy to draw attention to a genuine deadline or limit.",
+    "Scarcity Appeal": "Highlighting a genuine limit on supply or availability so buyers can decide in time.",
+    "Brand Storytelling": "Using characters, events and concrete details to show why a brand exists or how its products came to be.",
+    "Localization": "Adapting content to a market's language, habits and customer journey so it feels natural to its audience.",
+    "Benefit-Led Copy": "Copy that leads with a customer outcome and supports it with relevant product details.",
+    "Feature-to-Benefit": "Explaining how a product feature improves a particular task or situation for the customer.",
+    "Tone of Voice": "The attitude and personality conveyed by a brand's choice of words and rhythm.",
+    "Visual Hierarchy": "Arranging size, position and colour to guide readers from the most important information to supporting details.",
+    "White Space": "The empty area around text or images that separates information and gives key elements room to stand out.",
+    "Wordplay": "Using double meanings, sound-alikes or familiar expressions to make a line more memorable.",
+    "Headline": "The main title of an ad or page, used to identify the subject or foreground a benefit.",
+    "Customer Testimonial": "A genuine account of a customer's experience quoted with their permission.",
+    "Value Proposition": "A concise statement of whom a product serves, what problem it solves and why it is worth choosing.",
+    "Readability": "How easily readers can understand a text and locate its key information given its wording, structure and layout.",
     "Dewy Lip Tint": "A lip colour that leaves a tint with a soft, light-reflecting finish.",
     "Residential Meeting Package": "A meeting booking that bundles overnight accommodation, meeting facilities and catering.",
     "Joint Account Closure": "The process of closing an account held by multiple owners after addressing balances, pending transactions and payment instructions.",
@@ -64,8 +114,11 @@ ENGLISH_DEFINITIONS = {
 
 
 def with_english_definition(term):
-    definition = ENGLISH_DEFINITIONS.get(term["term_en"])
-    return {**term, "meaning": f'{term["meaning"]} EN: {definition}'} if definition else term
+    chinese, _, english = term["meaning"].partition(" EN: ")
+    definition = ENGLISH_DEFINITIONS.get(term["term_en"], english)
+    if not chinese.strip() or not definition.strip() or " EN: " in definition:
+        raise ValueError(f"Missing or invalid bilingual definition for {term['term_en']!r}.")
+    return {**term, "meaning": f"{chinese} EN: {definition}"}
 
 
 ADDITIONAL_CORE_TERMS = (
@@ -124,5 +177,19 @@ ADDITIONAL_CORE_TERMS = (
         "good_example_hk": "針對搜尋週末陶藝班嘅用家投放付費搜尋廣告。",
         "good_example_cn": "向搜索周末陶艺课的用户投放付费搜索广告。",
         "usage_tip": "SEM 有时泛指整个搜索推广领域。简报里写明是否专指付费投放，避免与自然搜索混算。",
+    },
+    {
+        "term_en": "Pay-Per-Click (PPC)",
+        "term_hk": "按點擊付費廣告",
+        "term_cn": "按点击付费广告",
+        "aliases": ["PPC", "Pay-Per-Click", "点击付费模式"],
+        "category": "投放与增长",
+        "platforms": ["Google Ads", "Microsoft Advertising", "百度营销"],
+        "meaning": "广告主在用户点击广告时付费的一种投放模式。CPC 则是衡量每次点击平均花费的指标。",
+        "bad_example": "这次的 PPC 是三元，所以预算只能买一次点击。",
+        "good_example_en": "Run a pay-per-click search campaign and track the average cost per click.",
+        "good_example_hk": "用按點擊付費廣告投放搜尋推廣，再追蹤平均每次點擊成本。",
+        "good_example_cn": "采用按点击付费广告投放搜索推广，并跟踪平均单次点击成本。",
+        "usage_tip": "跨市场投放简报可用 PPC 指计费模式，另列 CPC 指标及币种。",
     },
 )
