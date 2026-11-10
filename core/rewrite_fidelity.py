@@ -1,5 +1,6 @@
 """Check explicit offer facts before showing model-generated marketing copy."""
 
+from bisect import bisect_left
 from collections import Counter
 from datetime import date
 from decimal import Decimal
@@ -62,8 +63,23 @@ _DATES = (
     re.compile(r"(?<![0-9])(?P<y>[0-9]{4})[-/](?P<m>[0-9]{1,2})[-/](?P<d>[0-9]{1,2})(?![0-9])"),
     re.compile(rf"(?P<m>{_MONTH})\s+(?:the\s+)?(?P<d>{_DAY})(?![a-z0-9]){_EN_YEAR}"),
     re.compile(rf"(?<![a-z0-9])(?P<d>{_DAY})\s+(?P<m>{_MONTH}){_EN_YEAR}"),
-    re.compile(rf"(?P<d>{_DAY})\s*[日號号](?=\s*(?:起|止|截止|推出|[發发]售|開售|开售|上[線线市]|[開开]放|[結结]束))"),
+    re.compile(rf"(?P<d>{_DAY})\s*[日號号](?=\s*(?:起|止|截止|推出|[發发]售|[開开]售|上[線线市]|[開开][始放]|[結结]束))"),
     re.compile(rf"\bon\s+(?:the\s+)?(?P<d>{_ORDINAL_DAY})(?![a-z0-9])", re.ASCII),
+    re.compile(rf"(?:截止(?:至|到)?|截至|[結结]束[於于]|從|从|自)\s*(?P<d>{_DAY})\s*[日號号]"),
+    re.compile(rf"\b(?:until|through|by|from|ends?|closes?|expires?|starts?|begins?|opens?)"
+               rf"\s+(?:the\s+)?(?P<d>{_ORDINAL_DAY})(?![a-z0-9])", re.ASCII),
+)
+_DATE_ROLES = (
+    ("end", re.compile(
+        r"(?:截止(?:日(?:期)?)?(?:至|到|[為为於于])?|截至|[結结]束(?:[於于])?|至|"
+        r"\b(?:until|through|by|(?:ends?|closes?|expires?)(?:\s+on)?|deadline(?:\s+is)?))\s*:?\s*(?:the\s+)?$",
+        re.ASCII,
+    ), re.compile(r"^\s*(?:(?:[是為为]\s*(?:[優优]惠)?)?截止|[結结]束|停止|止|is\s+the\s+deadline\b)", re.ASCII)),
+    ("start", re.compile(
+        r"(?:[開开]始(?:[於于])?|[開开]放(?:[於于])?|從|从|自|"
+        r"\b(?:from|(?:start(?:s|ing)?|begin(?:s|ning)?|open(?:s|ing)?)(?:\s+on)?))\s*:?\s*(?:the\s+)?$",
+        re.ASCII,
+    ), re.compile(r"^\s*(?:起|[開开]始|[開开]售|[開开]放|[發发]售|上[線线市])")),
 )
 _MONTH_ONLY = re.compile(
     rf"(?P<n>{_NUMBER})\s*月(?![份龄齡])|(?<![a-z])(?P<m>january|jan|february|feb|april|apr|june|jun|"
@@ -135,6 +151,7 @@ _QUANTITY_LABELS = {
     "g": "克 g gram grams", "kg": "公斤 千克 kg kilogram kilograms",
 }
 _QUANTITY_UNITS = {label: unit for unit, labels in _QUANTITY_LABELS.items() for label in labels.split()}
+_MEASURE_UNITS = {"ml", "l", "cm", "mm", "g", "kg"}
 _HAN_QUANTITY = "|".join("包(?![郵邮])" if label == "包" else label
                          for label in sorted((label for label in _QUANTITY_UNITS if not label.isascii()),
                                              key=len, reverse=True))
@@ -164,7 +181,8 @@ _PRICE_STOP = set(
 )
 _PRICE_HAN_STOP = {"價格", "价格", "價錢", "价钱", "售價", "售价", "定價", "定价", "現售", "现售", "只需"}
 _MEMBER_OFFER = re.compile(
-    r"(?<!非)[會会][員员]|[會会]籍|(?<!non-)\bvips?\b|\bloyalty\s+cardholders?\b|"
+    r"尊[貴贵][會会][員员]|(?<!非)[會会][員员]|[會会]籍|貴賓|贵宾|(?<!non-)\bvips?\b(?:\s+members?\b)?|"
+    r"\bloyalty\s+cardholders?\b|"
     r"\b(?:with|through)\s+(?:(?:your|our|a|the)\s+)?membership\b|"
     r"\bmembership\s+(?:benefits?|discount|offer|perks?|price)\b|"
     r"(?<!non-)(?<!non )\bmembers?\b(?!\s+of\s+(?!(?:(?:our|the|a)\s+)?(?:loyalty|rewards)\b))", re.ASCII,
@@ -175,14 +193,48 @@ _MEMBER_UNRESTRICTED = re.compile(
     r"\bno\s+membership\s+(?:is\s+)?(?:required|needed|necessary)\b|\bincluding\s+(?:all\s+)?(?:members|vips?)\b",
     re.ASCII,
 )
+_VIP = re.compile(r"\bvips?\b|貴賓|贵宾|尊貴會員|尊贵会员", re.ASCII)
 _HONG_KONG = r"(?:香港|(?<![a-z0-9])(?:hong\s+kong|hk)(?![a-z0-9$]))"
 _HONG_KONG_WORD = re.compile(_HONG_KONG)
+_ZH_FREE_SHIPPING = r"(?:包[郵邮]|免[運运](?:[費费])?|免[郵邮][費费]|免[費费](?:送[貨货]|配送))"
 _FREE_SHIPPING = re.compile(
-    r"包[郵邮]|免[運运](?:[費费])?|免[郵邮][費费]|[運运][費费](?:全免|豁免)|"
+    rf"{_ZH_FREE_SHIPPING}|[運运][費费](?:全免|豁免)|"
     r"\b(?:free|complimentary)\s+(?:(?:local|hong\s+kong|hk)\s+)?(?:shipping|delivery)\b|"
-    r"\b(?:shipping|delivery)\b[^.!?;，,]{0,50}\b(?:is\s+(?:free|on\s+us)|at\s+no\s+(?:extra\s+)?charge)\b|"
+    r"\b(?:shipping|delivery)\b(?:(?!\band\b)[^.!?;，,]){0,50}"
+    r"\b(?:is\s+(?:free|on\s+us)|at\s+no\s+(?:extra\s+)?charge)\b|"
     r"\bships?\s+free\b",
     re.ASCII,
+)
+_PAID_SHIPPING = re.compile(
+    rf"(?:不(?:再|予|提供|享(?:受)?)?|未|[無无]|[並并]非|唔|冇)\s*{_ZH_FREE_SHIPPING}|"
+    r"(?:[運运][費费]|[郵邮][費费])\s*(?:另(?:[計计付收]|行[收計计])|自付|不[減减]?免|[須须]付)|"
+    rf"{_ZH_FREE_SHIPPING}\s*(?:[優优]惠)?\s*(?:不[適适]用|不提供|取消)|"
+    r"\b(?:no|without|not\s+eligible\s+for)\s+(?:free|complimentary)\s+"
+    r"(?:(?:local|hong\s+kong|hk)\s+)?(?:shipping|delivery)\b|"
+    r"\b(?:free|complimentary)\s+(?:shipping|delivery)\s+"
+    r"(?:(?:does\s+not|doesn['’]t)\s+apply|(?:is\s+not|isn['’]t)\s+(?:available|offered)|is\s+unavailable)\b|"
+    r"\b(?:shipping|delivery)(?:\s+(?:fees?|charges?))?\b(?:(?!\band\b)[^.!?;，,]){0,50}"
+    r"\b(?:(?:(?:is|are)\s+not|(?:isn|aren)['’]t)\s+free|costs?\s+extra|(?:is|are)\s+charged\s+separately|"
+    r"charged\s+(?:extra|separately)|fees?\s+apply|not\s+included)\b|"
+    r"\b(?:charges?|fees?)\s+apply\s+to\s+(?:(?!\band\b)[^.!?;，,]){0,32}\b(?:shipping|delivery)\b",
+    re.ASCII,
+)
+_OFFER_AVAILABLE = re.compile(r"[優优]惠|折扣|\b(?:offers?|discounts?)\b", re.ASCII)
+_OFFER_UNAVAILABLE = re.compile(
+    r"(?:不(?:再|能|可)?享(?:受)?|不提供|[無无]|[沒没]有|取消)\s*(?:任何)?(?:[優优]惠|折扣)|"
+    r"(?:[優优]惠|折扣)\s*(?:不可用|不[適适]用|取消)|"
+    r"\b(?:no|without)\s+(?:special\s+)?(?:offers?|discounts?)\b|"
+    r"\bnot\s+(?:eligible\s+for|entitled\s+to)\s+(?:(?:the|this|any|a)\s+)?(?:offers?|discounts?)\b|"
+    r"\b(?:offers?|discounts?)\b[^.!?;，,]{0,35}\b"
+    r"(?:not\s+(?:available|for\s+(?:members?|vips?))|unavailable|do(?:es)?\s+not\s+apply)\b",
+    re.ASCII,
+)
+_REGIONS = (
+    ("hk", _HONG_KONG_WORD),
+    ("cn", re.compile(r"內地|内地|中國大陸|中国大陆|\bmainland(?:\s+china)?\b", re.ASCII)),
+    ("mo", re.compile(r"澳[門门]|\bmaca[ou]\b", re.ASCII)),
+    ("tw", re.compile(r"[台臺]灣|台湾|\btaiwan\b", re.ASCII)),
+    ("overseas", re.compile(r"海外|境外|\b(?:overseas|international)\b", re.ASCII)),
 )
 _ORDER_ZH = r"(?:[訂订][單单]|下[單单]|[購购][買买]|[銷销]售|接受|受理)"
 _ONLY_ZH = r"(?:[僅仅只](?:限[於于]?|供|接受)|限[於于]|限定[於于]?|限制[於于]?)"
@@ -206,6 +258,18 @@ _AMBIGUOUS_ORDER_SCOPE = re.compile(
     re.ASCII,
 )
 _OFFER_CLAUSE = re.compile(r"[\n.!?;。！？；]")
+_CONDITION_BREAK = re.compile(r"[\n;。!?！？、]|(?<![0-9])[.,，]|[.,，](?![0-9])|\b(?:but|while|whereas)\b", re.ASCII)
+_BINDING_BREAK = re.compile(
+    r"[\n;。!?！？、]|(?<![0-9])[.,，]|[.,，](?![0-9])|\b(?:and|but|while|whereas)\b(?! *\0)",
+    re.ASCII,
+)
+_ITEM_LABEL = re.compile(r"(?:\b(?:product|item|option)\s+|[產产]品|[選选][項项])([a-z0-9]+)", re.ASCII)
+_BINDING_STOP = set(
+    "contains contain includes include comes come with bottles bottle box boxes pieces piece sets set units unit each "
+    "members member only vip offer eligible exclusive details view more learn general sale visit reserve link"
+    .split()
+)
+_BINDING_HAN_STOP = set("會員 会员 專享 专享 專屬 专属 正常 開售 开售 詳情 详情 限量 購買 购买 連結 链接".split())
 
 
 def _number(raw):
@@ -304,7 +368,7 @@ def _quantity(match):
     if match["prefix"] or match["suffix"]:
         return (("quantity", unit, amount), ("limited_quantity", unit, amount))
     # Idiomatic 一杯 and "one cup" can be indefinite in marketing copy.
-    explicit = amount != 1 or re.fullmatch(_DIGITS, raw) or match["symbol"] or unit in {"ml", "l", "cm", "mm", "g", "kg"}
+    explicit = amount != 1 or re.fullmatch(_DIGITS, raw) or match["symbol"] or unit in _MEASURE_UNITS
     return (("quantity" if explicit else "optional_quantity", unit, amount),)
 
 
@@ -388,18 +452,140 @@ def _same_price_assignments(expected, actual, *, required):
         price for price in actual_prices if price not in verified)
 
 
+def _date_roles(prose, match, fact):
+    fields = match.groupdict()
+    start = match.start() if fields.get("m") or fields.get("y") else match.start("d")
+    before, after = prose[max(0, start - 45):start], prose[match.end():match.end() + 24]
+    return {(fact[1:], role) for role, prefix, suffix in _DATE_ROLES if prefix.search(before) or suffix.search(after)}
+
+
+def _signed_conditions(prose):
+    conditions = set()
+    for clause in _CONDITION_BREAK.split(prose):
+        regions = sorted((match.start(), match.end(), region)
+                         for region, pattern in _REGIONS for match in pattern.finditer(clause))
+        for kind, affirmative, negative in (
+            ("shipping", _FREE_SHIPPING, _PAID_SHIPPING),
+            ("offer", _OFFER_AVAILABLE, _OFFER_UNAVAILABLE),
+        ):
+            negated = tuple(negative.finditer(clause))
+            positives = tuple(affirmative.finditer(negative.sub(lambda match: "\0" * len(match[0]), clause)))
+            scopes = {region for _, _, region in regions} or {""}
+            for polarity, mentions in ((True, positives), (False, negated)):
+                for mention in mentions:
+                    local = scopes
+                    if positives and negated and len(scopes) > 1:
+                        # With opposite claims in one sentence, attach each to the closest named market.
+                        position = bisect_left(regions, mention.start(), key=lambda entry: entry[0])
+                        nearby = regions[max(0, position - 1):position + 1]
+                        _, _, region = min(nearby, key=lambda entry: max(
+                            entry[0] - mention.end(), mention.start() - entry[1], 0))
+                        local = {region}
+                    conditions.update((kind, scope, polarity) for scope in local)
+    return conditions
+
+
+def _condition_conflict(expected, actual):
+    for kind, scope, affirmed in actual - expected:
+        if any(kind == old_kind and affirmed != old_affirmed and (scope == old_scope or not scope or not old_scope)
+               for old_kind, old_scope, old_affirmed in expected):
+            return True
+    return False
+
+
+def _binding_anchors(text):
+    labels = {"item:" + match[1] for match in _ITEM_LABEL.finditer(text)}
+    return labels | (_price_anchors(text) - _BINDING_STOP - _BINDING_HAN_STOP)
+
+
+def _clause_bindings(prose, occurrences):
+    """Bind explicit facts to distinctive labels and preserve order when labels disappear."""
+    if not occurrences:
+        return {}, {}, ()
+    occurrences.sort(key=lambda row: row[0])
+    orders, anchors = {}, {}
+    membership_clauses = []
+    position = left = 0
+    boundaries = [match.span() for match in _BINDING_BREAK.finditer(prose)]
+    for right, next_left in (*boundaries, (len(prose), len(prose))):
+        values = {}
+        while position < len(occurrences) and occurrences[position][0] < right:
+            _, kind, value = occurrences[position]
+            orders.setdefault(kind, []).append(value)
+            values.setdefault(kind, set()).add(value)
+            position += 1
+        labels = _binding_anchors(prose[left:right])
+        if labels:
+            membership_clauses.append(frozenset(values.get("membership", ())))
+        for anchor in labels:
+            anchors.setdefault(anchor, []).append(values)
+        left = next_left
+    return orders, {anchor: values[0] for anchor, values in anchors.items() if len(values) == 1}, tuple(membership_clauses)
+
+
+def _same_clause_bindings(expected, actual, *, required):
+    expected_order, expected_anchors, expected_membership = expected
+    actual_order, actual_anchors, actual_membership = actual
+    shared = expected_anchors.keys() & actual_anchors.keys()
+    for kind, order in expected_order.items():
+        verified = set()
+        for anchor in shared:
+            wanted = expected_anchors[anchor].get(kind, set())
+            found = actual_anchors[anchor].get(kind, set())
+            if found - wanted:
+                return False
+            verified.update(found)
+        if kind == "membership":
+            if (required and not verified and 1 < len(expected_membership) == len(actual_membership)
+                    and expected_membership != actual_membership):
+                return False
+        elif len(order) > 1:
+            actual_values = actual_order.get(kind, ())
+            actual_counts = Counter(actual_values)
+            if required and any(count > 1 and actual_counts[value] < count
+                                for value, count in Counter(order).items()):
+                return False
+            unbound = [value for value in order if value not in verified]
+            reported = [value for value in actual_values if value not in verified]
+            if required and kind == "url" and order != actual_values and unbound:
+                return False
+            if required and unbound != reported:
+                return False
+            if not required and not _subsequence(reported, unbound):
+                return False
+    return True
+
+
+def _subsequence(values, source):
+    ordered = iter(source)
+    return all(value in ordered for value in values)
+
+
 def _facts(copy):
-    facts = {("url", _url_destination(match)) for match in _URL.finditer(copy)}
-    prose = unicodedata.normalize("NFKC", _URL.sub(" ", copy)).lower().translate(_DASHES)
+    urls = []
+
+    def mask_url(match):
+        destination = _url_destination(match)
+        urls.append(destination)
+        return "\x01" + match[0][len(destination):]
+
+    prose = unicodedata.normalize("NFKC", _URL.sub(mask_url, copy.replace("\x01", " "))).lower().translate(_DASHES)
     prose = re.sub(r"\s+", lambda match: "\n" if "\n" in match[0] else " ", prose)
+    facts = {("url", url) for url in urls}
+    roles = set()
+    conditions = _signed_conditions(prose)
+    if ("shipping", "hk", True) in conditions:
+        facts.add(("shipping", "hk"))
+    bindings = [(match.start(), "url", url) for match, url in zip(re.finditer("\x01", prose), urls)]
     if _MEMBER_UNRESTRICTED.search(prose):
         facts.add(("membership_unrestricted",))
-    if _MEMBER_OFFER.search(_MEMBER_UNRESTRICTED.sub(" ", prose)):
+    member_prose = _MEMBER_UNRESTRICTED.sub(lambda match: "\0" * len(match[0]), prose)
+    if _MEMBER_OFFER.search(member_prose):
         facts.add(("membership",))
+    for match in _MEMBER_OFFER.finditer(member_prose):
+        bindings.append((match.start(), "membership", "vip" if _VIP.search(match[0]) else "member"))
     for clause in _OFFER_CLAUSE.split(prose):
-        shipping = _HONG_KONG_WORD.search(clause) and _FREE_SHIPPING.search(clause)
-        if shipping:
-            facts.add(("shipping", "hk"))
+        shipping = _HONG_KONG_WORD.search(clause) and _FREE_SHIPPING.search(_PAID_SHIPPING.sub(" ", clause))
         # A bare regional restriction may instead qualify free shipping.
         if _ORDER_SCOPE.search(clause) or (not shipping and _AMBIGUOUS_ORDER_SCOPE.search(clause)):
             facts.add(("orders", "hk"))
@@ -414,6 +600,17 @@ def _facts(copy):
                 for fact in found:
                     if fact[0] == "money":
                         prices.append((match.start(), match.end(), fact[1:]))
+                    elif fact[0] == "date":
+                        roles.update(_date_roles(prose, match, fact))
+                    elif fact[0] in ("quantity", "limited_quantity"):
+                        start = match.start() + len(match[0]) - len(match[0].lstrip())
+                        kind, unit, amount = fact
+                        if unit in _MEASURE_UNITS:
+                            bindings.append((start, (kind, unit), amount))
+                        else:
+                            bindings.append((start, kind, (unit, amount)))
+                    elif fact[0] == "first_guests":
+                        bindings.append((match.start(), "first_guests", fact[1]))
                 # Keep price offsets and do not join prose across a recognized fact.
                 return "\0" * len(match[0])
             return match[0]
@@ -439,7 +636,8 @@ def _facts(copy):
     remaining = take(_FIRST_GUESTS, lambda match: (("first_guests", _number(match["han"] or match["en"])),))
     remaining = take(_QUANTITY, _quantity)
     facts.update(("number", _number(match[0])) for match in _RAW_NUMBER.finditer(remaining))
-    return facts, _price_assignments(prose, prices)
+    labels = _MEMBER_OFFER.sub(lambda match: "\0" * len(match[0]), remaining)
+    return facts, _price_assignments(prose, prices), roles, conditions, _clause_bindings(labels, bindings)
 
 
 def _fold_discount(pay):
@@ -465,7 +663,8 @@ def _range_lengths(facts):
 
 def _verify_factual_fidelity(source, primary_copy, alt_copy, cta_options, market):
     """Require offer facts in both drafts and allow shorter, grounded CTAs."""
-    expected, prices = _facts(source)
+    expected, prices, roles, conditions, bindings = _facts(source)
+    required_shipping = {condition for condition in conditions if condition[0] == "shipping"}
     required = {fact for fact in expected if fact[0] not in ("number", "optional_quantity")}
     allowed = expected | _range_lengths(expected)
     allowed |= {("quantity", *fact[1:]) for fact in expected if fact[0] == "optional_quantity"}
@@ -474,11 +673,15 @@ def _verify_factual_fidelity(source, primary_copy, alt_copy, cta_options, market
     allowed |= {("month", month) for fact in expected if fact[0] == "date_range" for month in (fact[2], fact[4]) if month}
     allowed |= {("time", *instant) for fact in expected if fact[0] == "time_range" for instant in (fact[1:3], fact[3:5])}
     for index, output in enumerate((primary_copy, alt_copy, *cta_options)):
-        actual, actual_prices = _facts(output)
+        actual, actual_prices, actual_roles, actual_conditions, actual_bindings = _facts(output)
         optional_quantities = {fact for fact in actual if fact[0] == "optional_quantity"}
         actual -= optional_quantities
         actual |= {("quantity", *fact[1:]) for fact in optional_quantities if ("quantity", *fact[1:]) in allowed}
         full_draft = index < 2
         if (not actual <= allowed or (full_draft and not required <= actual)
-                or not _same_price_assignments(prices, actual_prices, required=full_draft)):
+                or not _same_price_assignments(prices, actual_prices, required=full_draft)
+                or any((day, "start" if role == "end" else "end") in actual_roles - roles for day, role in roles)
+                or _condition_conflict(conditions, actual_conditions)
+                or (full_draft and not required_shipping <= actual_conditions)
+                or not _same_clause_bindings(bindings, actual_bindings, required=full_draft)):
             raise RewriteFailure("factual_mismatch")

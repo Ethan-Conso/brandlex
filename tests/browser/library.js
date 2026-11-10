@@ -266,6 +266,7 @@ async (page) => {
     await add.click();
     await page.locator('#fill-example').click();
     assert(await page.locator('#field-term-en').inputValue() === 'Brand Newsletter', 'Fills example');
+    assert((await page.locator('#field-meaning').inputValue()).includes(' EN: A recurring email'), 'Fills a bilingual definition');
     await page.locator('#field-term-en').fill(testName);
     await page.locator('#save-term').click();
     await page.locator('#term-dialog').waitFor({state: 'hidden'});

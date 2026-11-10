@@ -11,6 +11,7 @@ from data.seed_beauty_fashion_tech import build_beauty_fashion_tech_terms
 from data.seed_core_definitions import ADDITIONAL_CORE_TERMS
 from data.seed_finance_compliance import build_finance_compliance_terms
 from data.seed_food_travel import build_food_travel_terms
+from data.seed_library import build_default_library
 from data.seed_marketing import build_marketing_terms
 from data.seed_terms import build_seed_terms
 
@@ -77,7 +78,7 @@ class LearningCopyTests(unittest.TestCase):
         self.assertNotIn("「启用声音功能」", tip)
 
     def test_entire_corpus_is_valid_ordered_distinct_and_has_compact_takeaways(self):
-        full = self.flagships + self.polished
+        full = build_default_library()
         self.assertEqual([term["id"] for term in full], list(range(1, 3209)))
         self.assertGreater(sum(raw["term_en"] != new["term_en"] for raw, new in zip(self.raw, self.polished)), 200)
         for field in ("term_en", "term_hk", "term_cn"):

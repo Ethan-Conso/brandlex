@@ -168,6 +168,25 @@ class SeedContentTests(unittest.TestCase):
             self.assertIn(hk, by_en[key]["term_hk"])
             self.assertIn(cn, by_en[key]["term_cn"])
 
+    def test_flagship_examples_keep_offer_conditions_and_disclosures_aligned(self):
+        terms = {term["id"]: term for term in build_seed_terms()}
+        shipping = terms[23]
+        self.assertIn("HK$350 or more", shipping["good_example_en"])
+        self.assertIn("滿HK$350", shipping["good_example_hk"])
+        self.assertIn("满HK$350", shipping["good_example_cn"])
+        for region, location, timing in (("en", "Hong Kong", "this weekend"),
+                                         ("hk", "香港", "今個週末"),
+                                         ("cn", "香港", "本周末")):
+            example = shipping[f"good_example_{region}"]
+            self.assertIn(location, example)
+            self.assertIn(timing, example)
+        partnership = terms[11]
+        for region, disclosure in (("en", "Paid partnership"), ("hk", "付費合作"),
+                                   ("cn", "付费合作")):
+            example = partnership[f"good_example_{region}"]
+            self.assertTrue(example.startswith(disclosure))
+            self.assertIn("Nora", example)
+
     def test_builders_return_independent_copies(self):
         first = build_seed_terms()
         first[0]["aliases"].append("test mutation")

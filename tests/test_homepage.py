@@ -144,6 +144,14 @@ class HomepageTests(unittest.TestCase):
             with self.subTest(file=path.relative_to(ROOT)):
                 self.assertIsNone(EMOJI.search(path.read_text(encoding="utf-8")))
 
+    def test_studio_always_displays_human_verification_reminder(self):
+        studio = self.html[self.html.index('id="view-studio"'):self.html.index('id="view-library"')]
+        self.assertRegex(
+            studio,
+            r'(?s)class="workspace-note"[^>]*>\s*<span>.*?'
+            r'<span id="rewrite-verification-note">请人工复核成稿中的适用地区、资格条件、优惠对象、起止时间与链接用途。</span>',
+        )
+
     def test_home_remains_public_and_does_not_relax_write_permissions(self):
         bootstrap = self.client.get("/api/bootstrap").get_json()["data"]
         self.assertIs(bootstrap["is_admin"], False)

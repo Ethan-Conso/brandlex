@@ -3,6 +3,7 @@
   'use strict';
 
   const URL = /https?:\/\/[^\s<>"`“”‘’「」『』，。；！？、：）】》]+/gi;
+  const URL_MARKER = '\x01';
   const ARABIC_NUMBER = String.raw`(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?`;
   const HAN_DIGITS = '零〇一二兩两三四五六七八九';
   const HAN_NUMBER = '[' + HAN_DIGITS + '廿十百千萬万]{1,16}(?:[點点][' + HAN_DIGITS + ']{1,8})?';
@@ -54,9 +55,17 @@
     String.raw`(?<![0-9])(?<year>[0-9]{4})[-/](?<month>[0-9]{1,2})[-/](?<day>[0-9]{1,2})(?![0-9])`,
     `(?<month>${EN_MONTH})\\s+(?:the\\s+)?(?<day>${DAY_NUMBER})(?![a-z0-9])${YEAR}`,
     `(?<![a-z0-9])(?<day>${DAY_NUMBER})\\s+(?<month>${EN_MONTH})${YEAR}`,
-    `(?<day>${DAY_NUMBER})\\s*[日號号](?=\\s*(?:起|止|截止|推出|[發发]售|開售|开售|上[線线市]|[開开]放|[結结]束))`,
+    `(?<day>${DAY_NUMBER})\\s*[日號号](?=\\s*(?:起|止|截止|推出|[發发]售|開售|开售|上[線线市]|[開开][始放]|[結结]束))`,
     `\\bon\\s+(?:the\\s+)?(?<day>${ORDINAL_DAY})(?![a-z0-9])`,
+    `(?:截止(?:至|到)?|截至|[結结]束[於于]|從|从|自)\\s*(?<day>${DAY_NUMBER})\\s*[日號号]`,
+    `\\b(?:until|through|by|from|ends?|closes?|expires?|starts?|begins?|opens?)\\s+(?:the\\s+)?(?<day>${ORDINAL_DAY})(?![a-z0-9])`,
   ].map(pattern);
+  const DATE_ROLES = [
+    ['end', /(?:截止(?:日(?:期)?)?(?:至|到|[為为於于])?|截至|[結结]束(?:[於于])?|至|\b(?:until|through|by|(?:ends?|closes?|expires?)(?:\s+on)?|deadline(?:\s+is)?))\s*:?\s*(?:the\s+)?$/u,
+      /^\s*(?:(?:[是為为]\s*(?:[優优]惠)?)?截止|[結结]束|停止|止|is\s+the\s+deadline\b)/u],
+    ['start', /(?:[開开]始(?:[於于])?|[開开]放(?:[於于])?|從|从|自|\b(?:from|(?:start(?:s|ing)?|begin(?:s|ning)?|open(?:s|ing)?)(?:\s+on)?))\s*:?\s*(?:the\s+)?$/u,
+      /^\s*(?:起|[開开]始|[開开]售|[開开]放|[發发]售|上[線线市])/u],
+  ];
   const CLOCK = String.raw`(?:[0-9]{1,2}:[0-9]{2}(?:\s*[ap]\.?m\.?(?![a-z]))?|[0-9]{1,2}\s*[ap]\.?m\.?(?![a-z]))`;
   const CLOCK_BETWEEN = pattern(`\\bbetween\\s+(?<start>${CLOCK})\\s+and\\s+(?<end>${CLOCK})(?![0-9])`);
   const TIME = pattern(`(?<![0-9])(?<start>${CLOCK})(?:\\s*(?:[-~〜至到]|to\\b)\\s*(?<end>${CLOCK}))?(?![0-9])`);
@@ -98,16 +107,39 @@
     + `(?:\\s*(?<hanUnit>${HAN_UNIT})|\\s*(?<symbol>ml|cm|mm|kg|l|g)(?![a-z0-9])`
     + `|(?:\\s+|\\s*-\\s*)(?:(?:gift|starter|sample|trial|travel|limited-edition)\\s+)?(?<enUnit>${EN_UNIT})(?![a-z0-9]))`
     + `(?<suffix>${LIMIT_SUFFIX})?`);
-  const MEMBER_OFFER = new RegExp(String.raw`(?<!非)[會会][員员]|[會会]籍|(?<!non-)\bvips?\b|\bloyalty\s+cardholders?\b`
+  const MEMBER_OFFER = new RegExp(String.raw`尊[貴贵][會会][員员]|(?<!非)[會会][員员]|[會会]籍|貴賓|贵宾|(?<!non-)\bvips?\b(?:\s+members?\b)?|\bloyalty\s+cardholders?\b`
     + String.raw`|\b(?:with|through)\s+(?:(?:your|our|a|the)\s+)?membership\b`
     + String.raw`|\bmembership\s+(?:benefits?|discount|offer|perks?|price)\b`
-    + String.raw`|(?<!non-)(?<!non )\bmembers?\b(?!\s+of\s+(?!(?:(?:our|the|a)\s+)?(?:loyalty|rewards)\b))`, 'u');
+    + String.raw`|(?<!non-)(?<!non )\bmembers?\b(?!\s+of\s+(?!(?:(?:our|the|a)\s+)?(?:loyalty|rewards)\b))`, 'gu');
   const MEMBER_UNRESTRICTED = new RegExp(String.raw`非[會会][員员](?:也|亦|均|同[樣样])?(?:可|能|享|[領领])|(?:[無无]需|不需(?:要)?|毋須)(?:成[為为])?[會会][員员]`
     + String.raw`|\bnon[- ]?members?\s+(?:(?:can|may|also)\s+)?(?:save|get|enjoy|qualif(?:y|ies))\b`
     + String.raw`|\bno\s+membership\s+(?:is\s+)?(?:required|needed|necessary)\b|\bincluding\s+(?:all\s+)?(?:members|vips?)\b`, 'gu');
+  const VIP = /\bvips?\b|貴賓|贵宾|尊貴會員|尊贵会员/u;
   const HONG_KONG = String.raw`(?:香港|(?<![a-z0-9])(?:hong\s+kong|hk)(?![a-z0-9$]))`;
   const HONG_KONG_WORD = new RegExp(HONG_KONG, 'u');
-  const FREE_SHIPPING = /包[郵邮]|免[運运](?:[費费])?|免[郵邮][費费]|[運运][費费](?:全免|豁免)|\b(?:free|complimentary)\s+(?:(?:local|hong\s+kong|hk)\s+)?(?:shipping|delivery)\b|\b(?:shipping|delivery)\b[^.!?;，,]{0,50}\b(?:is\s+(?:free|on\s+us)|at\s+no\s+(?:extra\s+)?charge)\b|\bships?\s+free\b/u;
+  const ZH_FREE_SHIPPING = '(?:包[郵邮]|免[運运](?:[費费])?|免[郵邮][費费]|免[費费](?:送[貨货]|配送))';
+  const FREE_SHIPPING = pattern(ZH_FREE_SHIPPING
+    + String.raw`|[運运][費费](?:全免|豁免)|\b(?:free|complimentary)\s+(?:(?:local|hong\s+kong|hk)\s+)?(?:shipping|delivery)\b`
+    + String.raw`|\b(?:shipping|delivery)\b(?:(?!\band\b)[^.!?;，,]){0,50}\b(?:is\s+(?:free|on\s+us)|at\s+no\s+(?:extra\s+)?charge)\b|\bships?\s+free\b`);
+  const PAID_SHIPPING = pattern(String.raw`(?:不(?:再|予|提供|享(?:受)?)?|未|[無无]|[並并]非|唔|冇)\s*${ZH_FREE_SHIPPING}`
+    + String.raw`|(?:[運运][費费]|[郵邮][費费])\s*(?:另(?:[計计付收]|行[收計计])|自付|不[減减]?免|[須须]付)`
+    + String.raw`|${ZH_FREE_SHIPPING}\s*(?:[優优]惠)?\s*(?:不[適适]用|不提供|取消)`
+    + String.raw`|\b(?:no|without|not\s+eligible\s+for)\s+(?:free|complimentary)\s+(?:(?:local|hong\s+kong|hk)\s+)?(?:shipping|delivery)\b`
+    + String.raw`|\b(?:free|complimentary)\s+(?:shipping|delivery)\s+(?:(?:does\s+not|doesn['’]t)\s+apply|(?:is\s+not|isn['’]t)\s+(?:available|offered)|is\s+unavailable)\b`
+    + String.raw`|\b(?:shipping|delivery)(?:\s+(?:fees?|charges?))?\b(?:(?!\band\b)[^.!?;，,]){0,50}\b(?:(?:(?:is|are)\s+not|(?:isn|aren)['’]t)\s+free|costs?\s+extra|(?:is|are)\s+charged\s+separately|charged\s+(?:extra|separately)|fees?\s+apply|not\s+included)\b`
+    + String.raw`|\b(?:charges?|fees?)\s+apply\s+to\s+(?:(?!\band\b)[^.!?;，,]){0,32}\b(?:shipping|delivery)\b`);
+  const OFFER_AVAILABLE = /[優优]惠|折扣|\b(?:offers?|discounts?)\b/gu;
+  const OFFER_UNAVAILABLE = pattern(String.raw`(?:不(?:再|能|可)?享(?:受)?|不提供|[無无]|[沒没]有|取消)\s*(?:任何)?(?:[優优]惠|折扣)|(?:[優优]惠|折扣)\s*(?:不可用|不[適适]用|取消)`
+    + String.raw`|\b(?:no|without)\s+(?:special\s+)?(?:offers?|discounts?)\b`
+    + String.raw`|\bnot\s+(?:eligible\s+for|entitled\s+to)\s+(?:(?:the|this|any|a)\s+)?(?:offers?|discounts?)\b`
+    + String.raw`|\b(?:offers?|discounts?)\b[^.!?;，,]{0,35}\b(?:not\s+(?:available|for\s+(?:members?|vips?))|unavailable|do(?:es)?\s+not\s+apply)\b`);
+  const REGIONS = [
+    ['hk', pattern(HONG_KONG)],
+    ['cn', /內地|内地|中國大陸|中国大陆|\bmainland(?:\s+china)?\b/gu],
+    ['mo', /澳[門门]|\bmaca[ou]\b/gu],
+    ['tw', /[台臺]灣|台湾|\btaiwan\b/gu],
+    ['overseas', /海外|境外|\b(?:overseas|international)\b/gu],
+  ];
   const ORDER_ZH = '(?:[訂订][單单]|下[單单]|[購购][買买]|[銷销]售|接受|受理)';
   const ONLY_ZH = '(?:[僅仅只](?:限[於于]?|供|接受)|限[於于]|限定[於于]?|限制[於于]?)';
   const ORDER_SCOPE = new RegExp(String.raw`${ORDER_ZH}(?:地[區区]|[範范][圍围])?\s*${ONLY_ZH}\s*${HONG_KONG}`
@@ -123,12 +155,18 @@
     + String.raw`|\b(?:only\s+${HONG_KONG}\s+orders?|${HONG_KONG}\s+orders?\s+only|orders?\s+(?:from|in|within)\s+${HONG_KONG}\s+only)\b`, 'u');
   const PRICE_CLAUSE = /[\n;。；!?！？、]|(?<![0-9])[.,，]|[.,，](?![0-9])|\b(?:and|while|whereas)\b/u;
   const PRICE_SENTENCE = /[\n;。；!?！？]|(?<![0-9])\.|\.(?![0-9])/u;
+  const CONDITION_BREAK = /[\n;。!?！？、]|(?<![0-9])[.,，]|[.,，](?![0-9])|\b(?:but|while|whereas)\b/u;
+  const BINDING_BREAK = /[\n;。!?！？、]|(?<![0-9])[.,，]|[.,，](?![0-9])|\b(?:and|but|while|whereas)\b(?! *\0)/gu;
+  const ITEM_LABEL = /(?:\b(?:product|item|option)\s+|[產产]品|[選选][項项])([a-z0-9]+)/gu;
   const PRICE_LIST_JOIN = /\s*(?:\b(?:and|or)\b|[,，、及和與与])\s*/u;
   const PRICE_LIST_JOIN_EXACT = new RegExp(`^(?:${PRICE_LIST_JOIN.source})$`, 'u');
   const PAIRED_PRICES = /\brespectively\b|分[別别]/u;
   const PRICE_STOP_WORDS = new Set(('a an are at and as available buy choose cost costs discover each for from get is just now of on only our per price priced '
     + 'prices purchase retail shop the then to today was were while with you your hkd usd rmb cny').split(' '));
   const PRICE_HAN_STOP = new Set(['價格', '价格', '價錢', '价钱', '售價', '售价', '定價', '定价', '現售', '现售', '只需']);
+  const BINDING_STOP = new Set(('contains contain includes include comes come with bottles bottle box boxes pieces piece sets set units unit each '
+    + 'members member only vip offer eligible exclusive details view more learn general sale visit reserve link').split(' '));
+  const BINDING_HAN_STOP = new Set('會員 会员 專享 专享 專屬 专属 正常 開售 开售 詳情 详情 限量 購買 购买 連結 链接'.split(' '));
   const FACTUAL_MISMATCH = 'Factual mismatch in DeepSeek rewrite';
 
   function factNumber(raw) {
@@ -292,33 +330,210 @@
     return unmatched(expected.prices).join('|') !== unmatched(actual.prices).join('|');
   }
 
+  function addDateRoles(roles, date, prose, groups, start, end) {
+    const span = prose.slice(start, end);
+    const dateStart = groups.month || groups.year ? start : start + span.indexOf(groups.day);
+    const prefix = prose.slice(Math.max(0, dateStart - 45), dateStart);
+    const suffix = prose.slice(end, end + 24);
+    for (const [role, before, after] of DATE_ROLES) {
+      if (!before.test(prefix) && !after.test(suffix)) continue;
+      if (!roles.has(date)) roles.set(date, new Set());
+      roles.get(date).add(role);
+    }
+  }
+
+  function conflictingDateRoles(expected, actual) {
+    for (const [date, roles] of actual) {
+      const known = expected.get(date);
+      if (known && [...roles].some(role => !known.has(role))) return true;
+    }
+    return false;
+  }
+
+  function signedConditions(prose) {
+    const conditions = new Set();
+    for (const clause of prose.split(CONDITION_BREAK)) {
+      const regions = REGIONS.flatMap(([region, regex]) => Array.from(clause.matchAll(regex), match =>
+        ({ region, start: match.index, end: match.index + match[0].length })))
+        .sort((a, b) => a.start - b.start || a.end - b.end);
+      const scopes = new Set(regions.map(({ region }) => region));
+      if (!scopes.size) scopes.add('');
+      for (const [kind, affirmative, negative] of [
+        ['shipping', FREE_SHIPPING, PAID_SHIPPING], ['offer', OFFER_AVAILABLE, OFFER_UNAVAILABLE],
+      ]) {
+        const negatives = Array.from(clause.matchAll(negative));
+        const positiveProse = clause.replace(negative, span => '\0'.repeat(span.length));
+        const positives = Array.from(positiveProse.matchAll(affirmative));
+        for (const [polarity, mentions] of [[1, positives], [0, negatives]]) {
+          let position = 0;
+          for (const mention of mentions) {
+            let local = scopes;
+            if (positives.length && negatives.length && scopes.size > 1) {
+              // Prefer the preceding market in a tie, as in the server guard.
+              while (position < regions.length && regions[position].start < mention.index) position += 1;
+              const before = regions[position - 1];
+              const after = regions[position];
+              const distance = ({ start, end }) => Math.max(start - mention.index - mention[0].length, mention.index - end, 0);
+              const nearest = before && (!after || distance(before) <= distance(after)) ? before : after;
+              local = [nearest.region];
+            }
+            for (const scope of local) conditions.add([kind, scope, polarity].join(':'));
+          }
+        }
+      }
+    }
+    return conditions;
+  }
+
+  function conflictingConditions(expected, actual) {
+    for (const condition of actual) {
+      if (expected.has(condition)) continue;
+      const [kind, scope, polarity] = condition.split(':');
+      const opposite = polarity === '1' ? 0 : 1;
+      const scopes = scope ? [scope, ''] : ['', ...REGIONS.map(([region]) => region)];
+      if (scopes.some(current => expected.has([kind, current, opposite].join(':')))) return true;
+    }
+    return false;
+  }
+
+  function bindingLabels(clause) {
+    const labels = new Set(Array.from(clause.matchAll(ITEM_LABEL), match => 'item:' + match[1]));
+    for (const label of priceLabels(clause)) {
+      if (!BINDING_STOP.has(label) && !BINDING_HAN_STOP.has(label)) labels.add(label);
+    }
+    return labels;
+  }
+
+  function clauseBindings(prose, occurrences) {
+    const orders = new Map();
+    const anchors = new Map();
+    const memberships = [];
+    if (!occurrences.length) return { orders, anchors, memberships };
+    const ordered = occurrences.sort((a, b) => a.start - b.start);
+    const boundaries = Array.from(prose.matchAll(BINDING_BREAK), match => [match.index, match.index + match[0].length]);
+    let position = 0;
+    let left = 0;
+    for (const [right, nextLeft] of [...boundaries, [prose.length, prose.length]]) {
+      const values = new Map();
+      while (position < ordered.length && ordered[position].start < right) {
+        const { kind, value } = ordered[position++];
+        if (!orders.has(kind)) orders.set(kind, []);
+        orders.get(kind).push(value);
+        if (!values.has(kind)) values.set(kind, new Set());
+        values.get(kind).add(value);
+      }
+      const labels = bindingLabels(prose.slice(left, right));
+      if (labels.size) memberships.push([...(values.get('membership') ?? [])].sort().join(':'));
+      for (const label of labels) {
+        anchors.set(label, anchors.has(label) ? null : values);
+      }
+      left = nextLeft;
+    }
+    return { orders, anchors: new Map([...anchors].filter(([, values]) => values !== null)), memberships };
+  }
+
+  function subsequence(values, source) {
+    let cursor = 0;
+    for (const value of values) {
+      const index = source.indexOf(value, cursor);
+      if (index === -1) return false;
+      cursor = index + 1;
+    }
+    return true;
+  }
+
+  function occurrenceCounts(values) {
+    const counts = new Map();
+    for (const value of values) counts.set(value, (counts.get(value) || 0) + 1);
+    return counts;
+  }
+
+  function sameSequence(left, right) {
+    return left.length === right.length && left.every((value, index) => value === right[index]);
+  }
+
+  function conflictingBindings(expected, actual, required) {
+    const shared = [...expected.anchors.keys()].filter(label => actual.anchors.has(label));
+    const empty = new Set();
+    for (const [kind, order] of expected.orders) {
+      const verified = new Set();
+      for (const label of shared) {
+        const wanted = expected.anchors.get(label).get(kind) ?? empty;
+        const found = actual.anchors.get(label).get(kind) ?? empty;
+        if ([...found].some(value => !wanted.has(value))) return true;
+        for (const value of found) verified.add(value);
+      }
+      if (kind === 'membership') {
+        if (required && !verified.size && expected.memberships.length > 1
+            && expected.memberships.length === actual.memberships.length
+            && expected.memberships.some((membership, index) => membership !== actual.memberships[index])) return true;
+        continue;
+      }
+      if (order.length < 2) continue;
+      const actualValues = actual.orders.get(kind) ?? [];
+      if (required) {
+        const counts = occurrenceCounts(actualValues);
+        if ([...occurrenceCounts(order)].some(([value, count]) => count > 1 && (counts.get(value) || 0) < count)) return true;
+      }
+      const unbound = order.filter(value => !verified.has(value));
+      const reported = actualValues.filter(value => !verified.has(value));
+      if (required && kind === 'url' && unbound.length && !sameSequence(order, actualValues)) return true;
+      if (required ? !sameSequence(unbound, reported) : !subsequence(reported, unbound)) return true;
+    }
+    return false;
+  }
+
   function extractFacts(text) {
-    const facts = new Set(Array.from(text.matchAll(URL), match => 'url:' + urlDestination(text, match)));
-    let prose = text.replace(URL, ' ').normalize('NFKC').toLowerCase().replace(/[\u2010-\u2015\u2212]/g, '-')
+    const copy = text.replaceAll(URL_MARKER, ' ');
+    const urls = Array.from(copy.matchAll(URL), match => urlDestination(copy, match));
+    let urlIndex = 0;
+    let prose = copy.replace(URL, raw => URL_MARKER + raw.slice(urls[urlIndex++].length))
+      .normalize('NFKC').toLowerCase().replace(/[\u2010-\u2015\u2212]/g, '-')
       .replace(/\s+/g, match => match.includes('\n') ? '\n' : ' ');
-    const memberProse = prose.replace(MEMBER_UNRESTRICTED, () => {
+    const facts = new Set(urls.map(url => 'url:' + url));
+    const conditions = signedConditions(prose);
+    if (conditions.has('shipping:hk:1')) facts.add('shipping:hk');
+    const bindings = Array.from(prose.matchAll(/\x01/g), (match, index) =>
+      ({ start: match.index, kind: 'url', value: urls[index] }));
+    const memberProse = prose.replace(MEMBER_UNRESTRICTED, span => {
       facts.add('membership_unrestricted');
-      return ' ';
+      return '\0'.repeat(span.length);
     });
-    if (MEMBER_OFFER.test(memberProse)) facts.add('membership');
+    for (const match of memberProse.matchAll(MEMBER_OFFER)) {
+      facts.add('membership');
+      bindings.push({ start: match.index, kind: 'membership', value: VIP.test(match[0]) ? 'vip' : 'member' });
+    }
     for (const clause of prose.split(/[\n.!?;。！？；]/u)) {
-      const shipping = HONG_KONG_WORD.test(clause) && FREE_SHIPPING.test(clause);
-      if (shipping) facts.add('shipping:hk');
+      const shipping = HONG_KONG_WORD.test(clause) && clause.replace(PAID_SHIPPING, ' ').search(FREE_SHIPPING) !== -1;
       // Bare geographic restrictions may refer to free shipping in the same clause.
       if (ORDER_SCOPE.test(clause) || (!shipping && AMBIGUOUS_ORDER_SCOPE.test(clause))) facts.add('orders:hk');
     }
     const implied = new Set();
     const labelProse = prose;
     const prices = [];
+    const roles = new Map();
     const fact = (...values) => values.join(':');
     const take = (expression, read, capturePrice = false) => {
       prose = prose.replace(expression, (...match) => {
         const span = match[0];
         const found = read(match.at(-1), span);
         if (!found) return span;
-        for (const value of (Array.isArray(found) ? found : [found])) facts.add(value);
         const start = match.at(-3);
+        for (const value of (Array.isArray(found) ? found : [found])) {
+          facts.add(value);
+          if (/^(?:quantity|limited_quantity):/.test(value)) {
+            const boundStart = start + span.length - span.trimStart().length;
+            const [kind, unit, amount] = value.split(':');
+            bindings.push(MEASUREMENT_UNITS.has(unit) ? { start: boundStart, kind: kind + ':' + unit, value: amount }
+              : { start: boundStart, kind, value: unit + ':' + amount });
+          } else if (value.startsWith('first_guests:')) {
+            bindings.push({ start, kind: 'first_guests', value: value.slice('first_guests:'.length) });
+          }
+        }
         if (capturePrice) prices.push({ value: found, start, end: start + span.length });
+        if (typeof found === 'string' && found.startsWith('date:')) {
+          addDateRoles(roles, found, labelProse, match.at(-1), start, start + span.length);
+        }
         return '\0'.repeat(span.length); // Keep clause offsets without joining text across facts.
       });
     };
@@ -375,12 +590,15 @@
       return fact(explicit ? 'quantity' : 'optional_quantity', unit, count);
     });
     for (const match of prose.matchAll(pattern(ARABIC_NUMBER))) facts.add(fact('number', factNumber(match[0])));
-    return { facts, implied, prices: priceAssignments(labelProse, prices) };
+    const labels = prose.replace(MEMBER_OFFER, span => '\0'.repeat(span.length));
+    return { facts, implied, roles, conditions, prices: priceAssignments(labelProse, prices),
+      bindings: clauseBindings(labels, bindings) };
   }
 
   function verifyFactualFidelity(source, primary, alternate, ctas) {
     const expected = extractFacts(source);
     const allowed = new Set([...expected.facts, ...expected.implied]);
+    const shipping = [...expected.conditions].filter(condition => condition.startsWith('shipping:'));
     for (const value of expected.facts) {
       if (value.startsWith('optional_quantity:')) allowed.add(value.slice('optional_'.length));
     }
@@ -395,7 +613,11 @@
       const conflicts = [...actual.facts].some(value => !allowed.has(value));
       const missing = index < 2 && [...expected.facts].some(value =>
         !value.startsWith('number:') && !value.startsWith('optional_quantity:') && !actual.facts.has(value));
-      if (conflicts || missing || conflictingPrices(expected.prices, actual.prices, index < 2)) {
+      if (conflicts || missing || conflictingDateRoles(expected.roles, actual.roles)
+          || conflictingConditions(expected.conditions, actual.conditions)
+          || (index < 2 && shipping.some(condition => !actual.conditions.has(condition)))
+          || conflictingPrices(expected.prices, actual.prices, index < 2)
+          || conflictingBindings(expected.bindings, actual.bindings, index < 2)) {
         throw new Error(FACTUAL_MISMATCH);
       }
     }

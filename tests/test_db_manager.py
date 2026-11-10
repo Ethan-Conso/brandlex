@@ -21,7 +21,7 @@ def term(identifier=1, name="Product Seeding"):
         "id": identifier, "term_en": name, "term_hk": "好物推介",
         "term_cn": "种草", "aliases": ["seeding", "安利"],
         "category": "社媒与种草", "platforms": ["IG", "小红书"],
-        "meaning": "通过真实体验分享，让更多人认识产品。",
+        "meaning": "通过真实体验分享，让更多人认识产品。 EN: Sharing real experiences to introduce a product.",
         "bad_example": "亲，一起种草吧。", "good_example_en": "Meet your new everyday favourite.",
         "good_example_hk": "今次私心推介呢款隨身香水。",
         "good_example_cn": "这款随身香水值得加入你的通勤包。",
@@ -92,6 +92,19 @@ class PersistenceTests(unittest.TestCase):
         fresh = DBManager(db_path=self.root / "new.db", json_path=self.root / "new.json", seed_path=self.seed)
         self.assertEqual(fresh.get_term(1)["category"], "社媒与种草")
         self.assertEqual(self.seed.read_bytes(), original)
+
+    def test_legacy_definition_is_readable_and_requires_bilingual_content_to_save(self):
+        legacy = "早期自订中文释义。"
+        with closing(sqlite3.connect(self.db.db_path)) as connection, connection:
+            connection.execute("UPDATE terms SET meaning = ? WHERE id = 1", (legacy,))
+        reopened = DBManager(**self.options)
+        self.assertEqual(reopened.get_term(1)["meaning"], legacy)
+        with self.assertRaisesRegex(ValueError, "EN:"):
+            reopened.update_term(1, {"term_en": "Edited Seeding"})
+        self.assertEqual(reopened.get_term(1)["term_en"], "Product Seeding")
+        bilingual = legacy + " EN: The original explanation can be updated."
+        self.assertEqual(reopened.update_term(1, {"meaning": bilingual})["meaning"], bilingual)
+        self.assert_snapshot()
 
     def test_delete_last_does_not_reseed_on_reopen(self):
         self.db.delete_term(1)

@@ -173,6 +173,27 @@ class WebAppTests(unittest.TestCase):
         self.assert_error(self.client.patch("/api/terms/1", json={"id": 3}, headers=self.headers), 400)
         self.assertEqual(self.client.get("/api/terms").get_json()["data"]["total"], 100)
 
+    def test_create_and_update_require_chinese_and_english_definitions(self):
+        original = self.client.get("/api/terms/1").json["data"]["meaning"]
+        payload = self.term_payload()
+        for meaning in ("只提供中文释义。", "EN: English only.", "Only English. EN: Still English.",
+                        "中文释义。 EN:", "中文释义。 EN: EN:", "中文释义。 EN: 仅中文。", ""):
+            with self.subTest(meaning=meaning):
+                created = self.client.post("/api/terms", json={**payload, "meaning": meaning}, headers=self.headers)
+                updated = self.client.patch("/api/terms/1", json={"meaning": meaning}, headers=self.headers)
+                for response in (created, updated):
+                    self.assertIn("EN:", self.assert_error(response, 400)["error"])
+        no_meaning = {key: value for key, value in payload.items() if key != "meaning"}
+        response = self.client.post("/api/terms", json=no_meaning, headers=self.headers)
+        self.assertIn("EN:", self.assert_error(response, 400)["error"])
+        self.assertEqual(self.client.get("/api/terms/1").json["data"]["meaning"], original)
+        self.assertEqual(self.client.get("/api/terms").json["data"]["total"], 100)
+        accepted = self.client.post("/api/terms", json={
+            **payload, "meaning": "品牌日常仪式。\nEN: A recurring brand ritual.",
+        }, headers=self.headers)
+        self.assertEqual(accepted.status_code, 201)
+        self.assertEqual(accepted.json["data"]["meaning"], "品牌日常仪式。 EN: A recurring brand ritual.")
+
     def test_mutations_and_copy_check_require_valid_csrf(self):
         operations = (
             ("post", "/api/terms", self.term_payload()),

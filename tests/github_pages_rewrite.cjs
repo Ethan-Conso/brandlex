@@ -53,8 +53,9 @@ globalThis.fetch = async (input, options) => {
   }) } }] });
 };
 
-async function browser(endpoint = '', key = '', edits) {
+async function browser(endpoint = '', key = '', edits, maintenance = false) {
   const stored = new Map(key ? [['brandlex_deepseek_key', key]] : []);
+  if (maintenance) stored.set('brandlex_static_admin_until', String(Date.now() + 60_000));
   const storage = map => ({ getItem: name => map.get(name) ?? null, setItem: (name, value) => map.set(name, value),
     removeItem: name => map.delete(name) });
   globalThis.localStorage = storage(new Map(edits ? [['brandlex_static_edits', JSON.stringify(edits)]] : []));
@@ -64,18 +65,20 @@ async function browser(endpoint = '', key = '', edits) {
   require(enginePath);
   const engine = globalThis.BrandLexStaticEngine;
   let { data } = await engine.request('/api/bootstrap');
-  assert.equal(data.is_admin, false);
-  const post = async (path, body) => {
+  assert.equal(data.is_admin, maintenance);
+  const mutate = async (path, body, method = 'POST') => {
     const result = await engine.request(path, {
-      method: 'POST', headers: { 'X-CSRF-Token': data.csrf_token }, body: JSON.stringify(body),
+      method, headers: { 'X-CSRF-Token': data.csrf_token }, body: JSON.stringify(body),
     });
     if (result.data.csrf_token) data = result.data;
     return result.data;
   };
   return {
     engine,
-    rewrite: (text, target_market, tone) => post('/api/rewrite', { text, target_market, tone }),
-    logout: () => post('/api/admin/logout', {}),
+    rewrite: (text, target_market, tone) => mutate('/api/rewrite', { text, target_market, tone }),
+    logout: () => mutate('/api/admin/logout', {}),
+    create: payload => mutate('/api/terms', payload),
+    edit: (id, payload) => mutate(`/api/terms/${id}`, payload, 'PATCH'),
   };
 }
 
@@ -159,4 +162,22 @@ async function browser(endpoint = '', key = '', edits) {
   const previous = await browser('', '', { seedMaxId: 3207, records: { 3205: null, 3208: null } });
   await assert.rejects(previous.engine.request('/api/terms/3205'), { status: 404 });
   assert.equal((await previous.engine.request('/api/terms/3208')).data.term_en, 'Pay-Per-Click (PPC)');
+
+  const legacy = '早期自订中文释义。';
+  const admin = await browser('', '', { seedMaxId: 3208, records: { 1: { ...firstTerm, meaning: legacy } } }, true);
+  const { id, updated_at, learning_tip, ...payload } = firstTerm;
+  assert.equal((await admin.engine.request('/api/terms/1')).data.meaning, legacy);
+  const snapshot = localStorage.getItem('brandlex_static_edits');
+  const needsBilingual = { status: 400, message: /EN:/ };
+  for (const meaning of ['只提供中文释义。', 'EN: English only.', 'Only English. EN: Still English.',
+    '中文释义。 EN:', '中文释义。 EN: EN:', '中文释义。 EN: 仅中文。', '']) {
+    await assert.rejects(admin.create({ ...payload, meaning }), needsBilingual);
+    await assert.rejects(admin.edit(1, { meaning }), needsBilingual);
+  }
+  const { meaning, ...withoutMeaning } = payload;
+  await assert.rejects(admin.create(withoutMeaning), needsBilingual);
+  await assert.rejects(admin.edit(1, { term_en: 'Edited Seeding' }), needsBilingual);
+  assert.equal(localStorage.getItem('brandlex_static_edits'), snapshot);
+  const repaired = await admin.edit(1, { meaning: legacy + '\nEN: The original explanation can be updated.' });
+  assert.equal(repaired.meaning, legacy + ' EN: The original explanation can be updated.');
 })().catch(error => { process.stderr.write(`${error.stack}\n`); process.exitCode = 1; });

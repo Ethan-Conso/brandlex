@@ -272,5 +272,263 @@
     "alt": "禮盒僅50套。",
     "market": "hk",
     "valid": true
+  },
+  {
+    "name": "free shipping cannot become paid shipping in the same region",
+    "source": "LUMA 禮盒香港免運費。",
+    "primary": "LUMA 禮盒香港免運費。",
+    "alt": "LUMA 禮盒香港不免運費。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "free shipping cannot become no free shipping",
+    "source": "香港包邮。",
+    "primary": "Free shipping in Hong Kong.",
+    "alt": "No free shipping in Hong Kong.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "free shipping cannot become separately billed shipping",
+    "source": "香港包邮。",
+    "primary": "香港包邮。",
+    "alt": "香港运费另计。",
+    "market": "cn",
+    "valid": false
+  },
+  {
+    "name": "free shipping negation must not survive in a CTA",
+    "source": "香港包邮。",
+    "primary": "Hong Kong orders ship free.",
+    "alt": "Free shipping in Hong Kong.",
+    "market": "en",
+    "valid": false,
+    "cta": "Shipping is not free in Hong Kong."
+  },
+  {
+    "name": "shipping polarity can differ by region",
+    "source": "香港包郵，海外運費另計。",
+    "primary": "Free shipping in Hong Kong; overseas shipping is charged separately.",
+    "alt": "International shipping costs extra. Shipping in Hong Kong is free.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "shipping polarity remains bound to named regions",
+    "source": "香港包邮，内地不包邮。",
+    "primary": "香港包邮，内地不包邮。",
+    "alt": "内地包邮，香港不包邮。",
+    "market": "cn",
+    "valid": false
+  },
+  {
+    "name": "offers cannot become explicitly unavailable",
+    "source": "品牌会员享优惠。",
+    "primary": "Members get a special offer.",
+    "alt": "No offer for members.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "deadline cannot become a start date",
+    "source": "預訂優惠截至11月30日。",
+    "primary": "The offer ends on November 30.",
+    "alt": "The offer starts on November 30.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "date role follows the date rather than the nearby offer",
+    "source": "The offer starts on November 10 and ends on November 30.",
+    "primary": "11月10日開始，11月30日截止。",
+    "alt": "11月10日截止，11月30日開始。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "a deadline can appear after the date",
+    "source": "優惠截止至11月30日。",
+    "primary": "優惠至11月30日截止。",
+    "alt": "11月30日截止優惠。",
+    "market": "hk",
+    "valid": true
+  },
+  {
+    "name": "a relative deadline can be localized without flipping role",
+    "source": "優惠截止至30日。",
+    "primary": "Offer valid until the 30th.",
+    "alt": "Offer ends on the 30th.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "a named product cannot inherit the other product's quantity",
+    "source": "LUMA contains 2 bottles. NOVA contains 3 bottles.",
+    "primary": "LUMA contains two bottles; NOVA contains three bottles.",
+    "alt": "LUMA contains three bottles; NOVA contains two bottles.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "membership cannot move from one product to the other",
+    "source": "LUMA會員專享，NOVA 正常開售。",
+    "primary": "LUMA is for members only. NOVA is on general sale.",
+    "alt": "LUMA is on general sale. NOVA is for members only.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "membership cannot be broadened across additional products",
+    "source": "LUMA is for members only. NOVA is on general sale.",
+    "primary": "Members only: LUMA. NOVA is on general sale.",
+    "alt": "LUMA is for members only. NOVA is for members only.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "URLs remain attached to the named products even if their clauses move",
+    "source": "LUMA: https://example.com/a; NOVA: https://example.com/b.",
+    "primary": "Explore NOVA at https://example.com/b; explore LUMA at https://example.com/a.",
+    "alt": "LUMA details: https://example.com/a. NOVA details: https://example.com/b.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "verbatim URLs may not swap between named products",
+    "source": "LUMA: https://example.com/a; NOVA: https://example.com/b.",
+    "primary": "LUMA details: https://example.com/a; NOVA details: https://example.com/b.",
+    "alt": "LUMA details: https://example.com/b; NOVA details: https://example.com/a.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "swapping label order cannot conceal a swapped URL assignment",
+    "source": "LUMA: https://example.com/a; NOVA: https://example.com/b.",
+    "primary": "LUMA details: https://example.com/a; NOVA details: https://example.com/b.",
+    "alt": "NOVA details: https://example.com/a; LUMA details: https://example.com/b.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "translated labels with no shared anchor preserve URL order",
+    "source": "香水詳情 https://example.com/a；托盤詳情 https://example.com/b。",
+    "primary": "Fragrance details: https://example.com/a. Tray details: https://example.com/b.",
+    "alt": "Fragrance details: https://example.com/b. Tray details: https://example.com/a.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "shipping term followed by a negative qualifier is still a reversal",
+    "source": "香港免運費。",
+    "primary": "香港享免運費。",
+    "alt": "免運費不適用於香港。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "a Cantonese shipping denial is still a reversal",
+    "source": "香港免運費。",
+    "primary": "香港免運費。",
+    "alt": "香港唔包郵。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "English shipping negation with a contraction",
+    "source": "香港包邮。",
+    "primary": "Hong Kong orders ship free.",
+    "alt": "Shipping isn’t free in Hong Kong.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "a coordinated clause can have opposite shipping policies for two markets",
+    "source": "香港包郵，海外運費另計。",
+    "primary": "Shipping in Hong Kong is free and international shipping costs extra.",
+    "alt": "International shipping is charged separately; Hong Kong orders ship free.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "negative member offer is recognized before the offer noun",
+    "source": "Members get a special offer.",
+    "primary": "A special offer is reserved for members.",
+    "alt": "Members are not eligible for the offer.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "English dates carry roles without the word on",
+    "source": "Sale ends 30 November.",
+    "primary": "Sale runs until November 30.",
+    "alt": "Sale starts 30 November.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "numeric ISO deadline can use a Chinese copula",
+    "source": "2026-11-30 是截止日期。",
+    "primary": "2026-11-30 截止。",
+    "alt": "2026-11-30 起開放。",
+    "market": "hk",
+    "valid": false
+  },
+  {
+    "name": "literal Product A and Product B identifiers retain their quantities",
+    "source": "Product A includes 2 bottles. Product B includes 3 boxes.",
+    "primary": "Product B includes three boxes; Product A includes two bottles.",
+    "alt": "Product A includes three boxes. Product B includes two bottles.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "translated unanchored mixed container counts keep relative order",
+    "source": "香水包含2瓶，托盤包含3盒。",
+    "primary": "The perfume includes two bottles. The tray comes in three boxes.",
+    "alt": "Perfume includes three boxes. Trays include two bottles.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "quantity may stay with the named product through sentence breaks",
+    "source": "LUMA includes 2 bottles. NOVA includes 3 bottles.",
+    "primary": "Discover LUMA. Each pack includes two bottles. NOVA includes three bottles.",
+    "alt": "NOVA includes three bottles. LUMA includes two bottles.",
+    "market": "en",
+    "valid": true
+  },
+  {
+    "name": "Product A and Product B retain specific membership levels",
+    "source": "Product A is VIP only. Product B is members only.",
+    "primary": "Product A is for VIP members. Product B is for members.",
+    "alt": "Product A is members only. Product B is VIP only.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "CTAs must not apply membership to the other product",
+    "source": "Product A is members only. Product B is on general sale.",
+    "primary": "Product A is members only. Product B is on general sale.",
+    "alt": "Product B is on general sale. Product A is for members only.",
+    "market": "en",
+    "valid": false,
+    "cta": "Member exclusive: Product B."
+  },
+  {
+    "name": "each use of a repeated URL keeps its binding",
+    "source": "LUMA details: https://example.com/all. NOVA details: https://example.com/all.",
+    "primary": "LUMA details: https://example.com/all. NOVA details: https://example.com/all.",
+    "alt": "LUMA details: https://example.com/all. Discover NOVA.",
+    "market": "en",
+    "valid": false
+  },
+  {
+    "name": "combined unlabeled links cannot reverse their order",
+    "source": "Product A: https://example.com/a. Product B: https://example.com/b.",
+    "primary": "Product A: https://example.com/a. Product B: https://example.com/b.",
+    "alt": "Product A and Product B: https://example.com/b and https://example.com/a.",
+    "market": "en",
+    "valid": false
   }
 ]

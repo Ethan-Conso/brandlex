@@ -16,7 +16,7 @@ from core.configuration import load_environment, session_secret
 from core.copy_checker import MAX_COPY_LENGTH, analyze_copy
 from core.db_manager import DBManager, SnapshotSyncError
 from core.pages_assets import GENERATED_ASSETS, PUBLIC_SNAPSHOTS
-from core.schema import CATEGORIES, TERM_FIELDS
+from core.schema import BilingualMeaningError, CATEGORIES, TERM_FIELDS
 from core.search_engine import FEED_BATCH_SIZE, SearchEngine
 from data.lexicon_domains import learning_tip
 from web_security import csrf_token, install_pages_safeguards, install_safeguards
@@ -55,6 +55,8 @@ def _payload():
 
 def _term_error(error):
     """Translate validation details without exposing implementation field names."""
+    if isinstance(error, BilingualMeaningError):
+        return str(error)
     message = str(error)
     labels = [label for field, label in LABELS.items() if field in message]
     if labels:

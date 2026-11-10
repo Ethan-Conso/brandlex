@@ -27,7 +27,9 @@
   const TONES = ['standard', 'social', 'concise'];
   const MISSING = '没有找到这条内容，请刷新词库后重试。';
   const STORAGE_ERROR = '词库暂时无法读取或保存，请稍后重试。';
+  const BILINGUAL_MEANING_ERROR = '请按「中文释义 EN: English definition」格式填写中英文释义。';
   const SPACE = /[\p{White_Space}\u001c-\u001f]+/gu;
+  const HAN = /[\u3400-\u9fff\uf900-\ufaff\u{20000}-\u{323af}]/u;
   const UNSUPPORTED = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\p{Cs}\ufffe\uffff]/u;
   const encoder = new TextEncoder();
   const files = new Map();
@@ -69,7 +71,17 @@
     return Number.isSafeInteger(id) && id > 0;
   }
 
-  function validateRecord(record, categories) {
+  function bilingualMeaning(value) {
+    const marker = /(?<=[\p{White_Space}\u001c-\u001f])EN:/u.exec(value);
+    const chinese = marker ? trim(value.slice(0, marker.index)) : '';
+    const english = marker ? trim(value.slice(marker.index + marker[0].length)) : '';
+    if (!HAN.test(chinese) || !/\b(?!EN:)[A-Za-z]{2,}\b/u.test(english)) {
+      fail(400, BILINGUAL_MEANING_ERROR);
+    }
+    return `${chinese} EN: ${english}`;
+  }
+
+  function validateRecord(record, categories, { requireBilingual = true } = {}) {
     const fieldError = field => fail(400, `请检查「${LABELS[field]}」，填写有效且完整的内容。`);
     const fieldText = (text, field, limit) => {
       if (typeof text !== 'string' || !trim(text) || Array.from(text).length > limit || UNSUPPORTED.test(text)) fieldError(field);
@@ -77,6 +89,11 @@
     };
     const fields = EDITABLE_FIELDS.map(field => {
       const value = record[field];
+      if (field === 'meaning' && requireBilingual) {
+        if (typeof value !== 'string' || !trim(value)) fail(400, BILINGUAL_MEANING_ERROR);
+        const meaning = bilingualMeaning(fieldText(value, field, 6000));
+        return [field, fieldText(meaning, field, 6000)];
+      }
       if (!LIST_FIELDS.includes(field)) return [field, fieldText(value, field, 6000)];
       if (!Array.isArray(value) || !value.length || value.length > 50) fieldError(field);
       return [field, [...new Set(value.map(item => fieldText(item, field, 200)))]];
@@ -108,7 +125,7 @@
         validChanges[id] = null;
       } else if (record && record.id === id) {
         try {
-          const validated = validateRecord(record, categories);
+          const validated = validateRecord(record, categories, { requireBilingual: false });
           const savedId = overlapsNewDefault ? nextId++ : id;
           const term = { id: savedId, ...validated };
           if (typeof record.updated_at === 'string' && !UNSUPPORTED.test(record.updated_at)) term.updated_at = record.updated_at;

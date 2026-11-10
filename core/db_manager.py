@@ -116,7 +116,9 @@ class DBManager:
             raise ValueError("The default term file is not valid JSON.") from error
         if not isinstance(records, list) or not records:
             raise ValueError("The default term file must contain a nonempty list.")
-        validated = [validate_term(_current_category(record), require_id=True) for record in records]
+        # Older seed files remain readable. All term mutations require a bilingual definition.
+        validated = [validate_term(_current_category(record), require_id=True, require_bilingual=False)
+                     for record in records]
         if len({record["id"] for record in validated}) != len(validated):
             raise ValueError("Every default term must have a unique ID.")
         return validated

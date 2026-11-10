@@ -531,7 +531,7 @@
   }
 
   function exampleTerm() {
-    fillTermForm({ term_en: 'Brand Newsletter', term_hk: '品牌電子通訊', term_cn: '品牌订阅邮件', aliases: ['newsletter', '品牌邮件', '電子報'], category: state.categories[0], platforms: ['EDM', 'Shopify'], meaning: '定期把新品、品牌故事或实用内容发给主动订阅的读者，让品牌与受众保持联系。', bad_example: '欢迎接收我们的新闻信。——机械照搬 newsletter 的字面意思，读者难以理解。', good_example_en: 'A little inspiration for your inbox. Subscribe for new arrivals and stories worth sharing.', good_example_hk: '訂閱品牌電子通訊，率先接收新品消息，發掘日常生活的小靈感。', good_example_cn: '订阅品牌邮件，第一时间获取上新消息，也收获一点日常灵感。', usage_tip: '香港可用「電子通訊」，内地可写「订阅邮件」；清楚说明内容与频率，并提供取消订阅方式。' });
+    fillTermForm({ term_en: 'Brand Newsletter', term_hk: '品牌電子通訊', term_cn: '品牌订阅邮件', aliases: ['newsletter', '品牌邮件', '電子報'], category: state.categories[0], platforms: ['EDM', 'Shopify'], meaning: '定期把新品、品牌故事或实用内容发给主动订阅的读者，让品牌与受众保持联系。 EN: A recurring email sent to subscribers with new arrivals, brand stories and useful updates.', bad_example: '欢迎接收我们的新闻信。——机械照搬 newsletter 的字面意思，读者难以理解。', good_example_en: 'A little inspiration for your inbox. Subscribe for new arrivals and stories worth sharing.', good_example_hk: '訂閱品牌電子通訊，率先接收新品消息，發掘日常生活的小靈感。', good_example_cn: '订阅品牌邮件，第一时间获取上新消息，也收获一点日常灵感。', usage_tip: '香港可用「電子通訊」，内地可写「订阅邮件」；清楚说明内容与频率，并提供取消订阅方式。' });
     $('#field-term-en').focus();
   }
 

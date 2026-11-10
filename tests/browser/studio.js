@@ -10,6 +10,9 @@ async (page) => {
   assert(await page.locator('#view-home').isVisible(), 'Product home is landing view');
   await page.locator('#tab-studio').click();
   assert(await page.locator('#view-studio').isVisible(), 'Studio remains one click away');
+  const verification = page.locator('#rewrite-verification-note');
+  assert(await verification.isVisible() && (await verification.innerText()).includes('请人工复核'),
+    'Verification reminder is visible before a rewrite');
   assert(await page.locator('.app-header').evaluate(node => node.getBoundingClientRect().height) === 52, '52px header');
   assert(await page.locator('.admin-only:visible').count() === 0, 'Public write actions hidden');
   assert(bootstrap.is_admin === false, 'Public session locked');
@@ -63,6 +66,7 @@ async (page) => {
       }
     }
     await page.locator('#version-alt').click();
+    assert(await verification.isVisible(), 'Verification reminder remains visible with a result');
     const alternate = await page.locator('#rewritten-copy').innerText();
     await page.locator('#copy-output').click();
     assert(await page.evaluate(() => navigator.clipboard.readText()) === alternate, 'Copies alternate version');

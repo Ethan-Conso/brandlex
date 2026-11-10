@@ -1,5 +1,6 @@
 """Shared, dependency-free validation for the BrandLex term format."""
 
+import re
 import unicodedata
 from collections.abc import Mapping
 
@@ -15,6 +16,14 @@ TEXT_FIELDS = (
 )
 LIST_FIELDS = ("aliases", "platforms")
 TERM_FIELDS = ("id", *TEXT_FIELDS[:3], "aliases", "category", "platforms", *TEXT_FIELDS[4:])
+_HAN = re.compile(r"[\u3400-\u9fff\uf900-\ufaff\U00020000-\U000323af]")
+
+
+class BilingualMeaningError(ValueError):
+    """A term is missing one or both languages in its definition."""
+
+    def __init__(self):
+        super().__init__("请按「中文释义 EN: English definition」格式填写中英文释义。")
 
 
 def validate_identifier(value):
@@ -33,7 +42,16 @@ def _text(value, field, limit=6000):
     return value.strip()
 
 
-def validate_term(record, *, require_id=False, allow_metadata=False):
+def _bilingual_meaning(value):
+    if not isinstance(value, str) or not value.strip():
+        raise BilingualMeaningError()
+    parts = re.split(r"(?<=\s)EN:", _text(value, "meaning"), maxsplit=1)
+    if len(parts) != 2 or not _HAN.search(parts[0]) or not re.search(r"\b(?!EN:)[A-Za-z]{2,}\b", parts[1], re.ASCII):
+        raise BilingualMeaningError()
+    return _text(f"{parts[0].strip()} EN: {parts[1].strip()}", "meaning")
+
+
+def validate_term(record, *, require_id=False, allow_metadata=False, require_bilingual=True):
     """Return a validated copy; never change caller-owned objects."""
     if not isinstance(record, Mapping):
         raise ValueError("A term must be an object containing the required fields.")
@@ -42,9 +60,13 @@ def validate_term(record, *, require_id=False, allow_metadata=False):
     if unknown:
         raise ValueError("Unknown term fields: " + ", ".join(sorted(map(str, unknown))))
     required = set(TEXT_FIELDS) | set(LIST_FIELDS) | ({"id"} if require_id else set())
-    if required - set(record):
-        raise ValueError("Missing term fields: " + ", ".join(sorted(required - set(record))))
-    result = {field: _text(record[field], field) for field in TEXT_FIELDS}
+    missing = required - set(record)
+    if missing:
+        if require_bilingual and missing == {"meaning"}:
+            raise BilingualMeaningError()
+        raise ValueError("Missing term fields: " + ", ".join(sorted(missing)))
+    result = {field: _bilingual_meaning(record[field]) if require_bilingual and field == "meaning"
+              else _text(record[field], field) for field in TEXT_FIELDS}
     if result["category"] not in CATEGORIES:
         raise ValueError("Choose a valid category.")
     for field in LIST_FIELDS:

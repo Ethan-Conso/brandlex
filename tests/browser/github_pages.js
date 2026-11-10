@@ -228,7 +228,14 @@ async (page) => {
   const fixtureName = 'BrandLex Pages Browser Fixture';
   await $('#view-library [data-action="add-term"]').click();
   await $('#fill-example').click();
+  const bilingualMeaning = await $('#field-meaning').inputValue();
+  assert(bilingualMeaning.includes(' EN: A recurring email'), 'Sample fills a bilingual definition');
   await $('#field-term-en').fill(fixtureName);
+  await $('#field-meaning').fill('只有中文释义。');
+  await $('#save-term').click();
+  await $('#term-error').waitFor({ state: 'visible' });
+  assert((await $('#term-error').innerText()).includes('EN:'), 'Single-language definition is rejected with format guidance');
+  await $('#field-meaning').fill(bilingualMeaning);
   await $('#save-term').click();
   await $('#term-dialog').waitFor({ state: 'hidden' });
   await waitToast('词条已保存在本浏览器');

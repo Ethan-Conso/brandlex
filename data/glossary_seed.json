@@ -265,8 +265,8 @@
     "meaning": "关键意见领袖（KOL）是在特定领域有影响力的人。达人合作指品牌与这类创作者共同制作或发布内容。 EN: A brand works with an influential creator to make or share content. A key opinion leader (KOL) is someone whose views carry weight in a particular field.",
     "bad_example": "『这位博主是自然推荐，不需要提赞助。』——隐藏付费合作会损害信任。",
     "good_example_en": "Paid partnership with Nora: three easy ways to style our linen shirt.",
-    "good_example_hk": "與 Nora 合作呈獻：一件麻質恤衫，三種日常穿搭提案。",
-    "good_example_cn": "与穿搭达人 Nora 合作分享：一件亚麻衬衫，搭出三种通勤风格。",
+    "good_example_hk": "付費合作｜與 Nora 一齊示範麻質恤衫嘅三種日常穿搭。",
+    "good_example_cn": "付费合作｜和穿搭博主 Nora 一起解锁亚麻衬衫的三种日常搭配。",
     "usage_tip": "香港常用『KOL 合作』，内地多用『达人／博主合作』；英文『collab』也可能指联名，需写明合作形式。"
   },
   {
@@ -561,9 +561,9 @@
     ],
     "meaning": "由商家承担符合条件订单的配送费。须同时交代消费门槛、配送地区及不适用情况。 EN: Delivery at no charge to the customer when an order meets the stated conditions.",
     "bad_example": "香港全場包郵，詳情結帳時才公布。（地区用词不贴切，条件出现太迟）",
-    "good_example_en": "Enjoy free Hong Kong delivery on orders over HK$350.",
-    "good_example_hk": "購物滿HK$350，即享香港地區免運費送貨。",
-    "good_example_cn": "实付满¥199享包邮，偏远地区配送规则请查看结算页。",
+    "good_example_en": "Enjoy Free Shipping on all Hong Kong orders of HK$350 or more this weekend.",
+    "good_example_hk": "今個週末購物滿HK$350，即享香港地區免運費送貨。",
+    "good_example_cn": "本周末香港地区订单满HK$350即享包邮。",
     "usage_tip": "香港用「免運費／免費送貨」，内地用「包邮／免邮」；跨境订单需另列税费和偏远地区限制。"
   },
   {

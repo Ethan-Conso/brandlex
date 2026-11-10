@@ -150,7 +150,12 @@ LUMA 跨界聯乘禮盒，現已登場。</p>
           </div>
         </section>
       </div>
-      <div class="workspace-note"><span id="rewrite-privacy-note">原稿不会存入词库。智能改写时，原稿与命中词条将发送至 DeepSeek。</span><button class="button button-quiet" id="deepseek-key-toggle" type="button" hidden>DeepSeek API Key</button><span>EN / HK / CN</span></div>
+      <div class="workspace-note">
+        <span><span id="rewrite-privacy-note">原稿不会存入词库。智能改写时，原稿与命中词条将发送至 DeepSeek。</span><br>
+          <span id="rewrite-verification-note">请人工复核成稿中的适用地区、资格条件、优惠对象、起止时间与链接用途。</span>
+        </span>
+        <button class="button button-quiet" id="deepseek-key-toggle" type="button" hidden>DeepSeek API Key</button><span>EN / HK / CN</span>
+      </div>
     </section>
     <section class="workspace-view" id="view-library" role="tabpanel" aria-labelledby="tab-library" hidden>
       <div class="library-toolbar">
@@ -221,7 +226,7 @@ LUMA 跨界聯乘禮盒，現已登場。</p>
     <div class="field"><label for="field-term-hk">香港繁中</label><input name="term_hk" id="field-term-hk" required maxlength="300"></div><div class="field"><label for="field-term-cn">内地简中</label><input name="term_cn" id="field-term-cn" required maxlength="300"></div>
     <div class="field"><label for="field-category">场景分类</label><select name="category" id="field-category" required></select></div><div class="field"><label for="field-platforms">适用平台</label><input name="platforms" id="field-platforms" required maxlength="2000" placeholder="IG, 小红书, EDM"></div>
     <div class="field field-full"><label for="field-aliases">搜索别称</label><input name="aliases" id="field-aliases" required maxlength="4000" placeholder="多个表达以逗号分隔"></div>
-    <div class="field field-full"><label for="field-meaning">简明释义</label><textarea name="meaning" id="field-meaning" required rows="2" maxlength="6000"></textarea></div><div class="field field-full"><label for="field-bad-example">避免写法</label><textarea name="bad_example" id="field-bad-example" required rows="2" maxlength="6000"></textarea></div>
+    <div class="field field-full"><label for="field-meaning">简明释义</label><textarea name="meaning" id="field-meaning" required rows="2" maxlength="6000" placeholder="中文释义 EN: English definition"></textarea></div><div class="field field-full"><label for="field-bad-example">避免写法</label><textarea name="bad_example" id="field-bad-example" required rows="2" maxlength="6000"></textarea></div>
     <div class="field field-full"><label for="field-good-en">EN 例句</label><textarea name="good_example_en" id="field-good-en" required rows="2" maxlength="6000"></textarea></div><div class="field"><label for="field-good-hk">HK 例句</label><textarea name="good_example_hk" id="field-good-hk" required rows="3" maxlength="6000"></textarea></div><div class="field"><label for="field-good-cn">CN 例句</label><textarea name="good_example_cn" id="field-good-cn" required rows="3" maxlength="6000"></textarea></div>
     <div class="field field-full"><label for="field-usage-tip">跨区贴士</label><textarea name="usage_tip" id="field-usage-tip" required rows="2" maxlength="6000"></textarea></div></div><p class="form-hint">平台与别称可用逗号分隔。</p><p id="term-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" type="button" data-close="term-dialog">取消</button><button class="button button-primary" type="submit" id="save-term">保存</button></div></form></dialog>
   <dialog class="modal confirm-modal" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description"><div class="modal-head"><h2 id="confirm-title">确认操作</h2><button class="icon-button" data-close="confirm-dialog" aria-label="关闭确认">×</button></div><p id="confirm-description" class="modal-description"></p><p id="confirm-error" class="error-message" role="alert" hidden></p><div class="modal-footer"><button class="button button-secondary" data-close="confirm-dialog">取消</button><button class="button button-danger" id="confirm-action">确认</button></div></dialog>
